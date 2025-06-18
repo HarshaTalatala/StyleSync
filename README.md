@@ -50,6 +50,10 @@ Visit `http://localhost:5173` to see your app!
 - **Firebase Admin SDK** - Database operations
 - **Azure Storage** - File storage
 
+### Hosting
+- **Azure Static Web Apps** - Frontend hosting with global CDN
+- **Azure Functions** - Serverless backend API
+
 ## 📦 Installation
 
 ### Prerequisites
@@ -101,8 +105,8 @@ Visit `http://localhost:5173` to see your app!
 
 ## 🚀 Deployment
 
-### Frontend - GitHub Pages
-The frontend is automatically deployed to GitHub Pages via GitHub Actions.
+### Frontend - Azure Static Web Apps
+The frontend is automatically deployed to Azure Static Web Apps via GitHub Actions.
 
 ### Backend - Azure Functions
 The backend is deployed as Azure Functions for serverless execution.
@@ -122,8 +126,18 @@ StyleSync/
 │   ├── functions/         # Azure Function handlers
 │   └── shared/            # Shared utilities
 ├── .github/               # GitHub Actions workflows
+├── staticwebapp.config.json # Azure Static Web Apps configuration
 └── docs/                  # Documentation
 ```
+
+## 🌟 Azure Benefits
+
+- **Global CDN**: Fast loading worldwide
+- **Built-in Authentication**: Easy user management
+- **API Integration**: Seamless connection with Azure Functions
+- **Custom Domains**: Professional URLs
+- **SSL Certificates**: Automatic HTTPS
+- **Preview Environments**: Test before production
 
 ## 🤝 Contributing
 

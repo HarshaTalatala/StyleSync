@@ -1,11 +1,11 @@
 # StyleSync Deployment Guide
 
-This guide will walk you through deploying StyleSync to GitHub Pages (frontend) and Azure Functions (backend).
+This guide will walk you through deploying StyleSync to Azure Static Web Apps (frontend) and Azure Functions (backend).
 
 ## 🚀 Prerequisites
 
-1. **GitHub Account** - For repository and GitHub Pages
-2. **Azure Account** - For Azure Functions and Storage
+1. **GitHub Account** - For repository and CI/CD
+2. **Azure Account** - For Azure Static Web Apps, Functions, and Storage
 3. **Firebase Project** - For authentication and database
 4. **Azure CLI** - For Azure resource management
 
@@ -109,7 +109,30 @@ This guide will walk you through deploying StyleSync to GitHub Pages (frontend) 
      AZURE_STORAGE_CONNECTION_STRING="your-storage-connection-string"
    ```
 
-### Step 4: Deploy Backend to Azure Functions
+### Step 4: Create Azure Static Web App
+
+1. **Create Static Web App**
+   ```bash
+   az staticwebapp create \
+     --name stylesync-app \
+     --resource-group stylesync-rg \
+     --source https://github.com/YOUR_USERNAME/StyleSync \
+     --location eastus \
+     --branch main \
+     --app-location "/" \
+     --output-location "dist"
+   ```
+
+2. **Get Deployment Token**
+   ```bash
+   az staticwebapp secrets set \
+     --name stylesync-app \
+     --resource-group stylesync-rg \
+     --secret-name deployment-token \
+     --secret-value "your-deployment-token"
+   ```
+
+### Step 5: Deploy Backend to Azure Functions
 
 1. **Navigate to backend directory**
    ```bash
@@ -126,15 +149,7 @@ This guide will walk you through deploying StyleSync to GitHub Pages (frontend) 
    func azure functionapp publish stylesync-functions
    ```
 
-   **Alternative: Deploy via Azure CLI**
-   ```bash
-   az functionapp deployment source config-zip \
-     --resource-group stylesync-rg \
-     --name stylesync-functions \
-     --src backend.zip
-   ```
-
-### Step 5: Configure GitHub Secrets
+### Step 6: Configure GitHub Secrets
 
 1. **Go to your GitHub repository**
 2. **Navigate to Settings > Secrets and variables > Actions**
@@ -153,23 +168,27 @@ This guide will walk you through deploying StyleSync to GitHub Pages (frontend) 
 
    **Azure Configuration:**
    ```
+   AZURE_STATIC_WEB_APPS_API_TOKEN=your_static_web_apps_deployment_token
    VITE_BACKEND_API_URL=https://stylesync-functions.azurewebsites.net/api
    ```
 
-### Step 6: Enable GitHub Pages
+### Step 7: Get Azure Static Web Apps Deployment Token
 
-1. **Go to your GitHub repository**
-2. **Navigate to Settings > Pages**
-3. **Source: Deploy from a branch**
-4. **Branch: gh-pages (will be created by GitHub Actions)**
-5. **Save**
+1. **Get the deployment token:**
+   ```bash
+   az staticwebapp secrets list \
+     --name stylesync-app \
+     --resource-group stylesync-rg
+   ```
 
-### Step 7: Deploy Frontend
+2. **Copy the deployment token and add it as GitHub secret `AZURE_STATIC_WEB_APPS_API_TOKEN`**
+
+### Step 8: Deploy Frontend
 
 1. **Push your changes to trigger deployment:**
    ```bash
    git add .
-   git commit -m "Add deployment configuration"
+   git commit -m "Add Azure Static Web Apps configuration"
    git push
    ```
 
@@ -189,7 +208,7 @@ VITE_BACKEND_API_URL=https://stylesync-functions.azurewebsites.net/api
 
 ### Test the Deployment
 
-1. **Frontend**: Visit `https://YOUR_USERNAME.github.io/StyleSync`
+1. **Frontend**: Visit `https://stylesync-app.azurestaticapps.net`
 2. **Backend**: Test Azure Functions endpoints at `https://stylesync-functions.azurewebsites.net/api`
 3. **Database**: Verify Firebase connections
 
@@ -197,15 +216,15 @@ VITE_BACKEND_API_URL=https://stylesync-functions.azurewebsites.net/api
 
 ### Common Issues:
 
-1. **Azure Functions not deploying**
+1. **Azure Static Web Apps not deploying**
+   - Check deployment token is correct
+   - Verify GitHub repository is connected
+   - Ensure build is successful
+
+2. **Azure Functions not deploying**
    - Check Azure CLI is logged in
    - Verify function app name matches
    - Ensure backend folder is properly configured
-
-2. **GitHub Pages not working**
-   - Ensure repository is public
-   - Check Actions permissions
-   - Verify build is successful
 
 3. **Firebase connection issues**
    - Verify Firebase project ID is correct
@@ -225,6 +244,9 @@ az resource list --resource-group stylesync-rg
 # View function logs
 az functionapp logs tail --name stylesync-functions --resource-group stylesync-rg
 
+# View Static Web App logs
+az staticwebapp logs show --name stylesync-app --resource-group stylesync-rg
+
 # Redeploy backend
 cd backend
 func azure functionapp publish stylesync-functions
@@ -240,7 +262,7 @@ If you encounter issues:
 
 ## 🔄 Continuous Deployment
 
-- **Frontend**: Every push to the `main` branch automatically deploys to GitHub Pages
+- **Frontend**: Every push to the `main` branch automatically deploys to Azure Static Web Apps
 - **Backend**: Deploy manually when backend changes are made using `func azure functionapp publish`
 
 ## 🏗️ Project Structure
@@ -249,6 +271,7 @@ If you encounter issues:
 StyleSync/ (GitHub Repository - Frontend Only)
 ├── src/                    # Frontend source code
 ├── .github/workflows/      # GitHub Actions
+├── staticwebapp.config.json # Azure Static Web Apps config
 ├── package.json           # Frontend dependencies
 └── README.md              # Project documentation
 
@@ -259,4 +282,13 @@ backend/ (Local Development - Deployed to Azure)
 └── package.json          # Backend dependencies
 ```
 
-Your StyleSync application is now properly separated with frontend on GitHub Pages and backend on Azure Functions! 
+## 🌟 Benefits of Azure Static Web Apps
+
+- **Global CDN**: Fast loading worldwide
+- **Built-in Authentication**: Easy user management
+- **API Integration**: Seamless connection with Azure Functions
+- **Custom Domains**: Professional URLs
+- **SSL Certificates**: Automatic HTTPS
+- **Preview Environments**: Test before production
+
+Your StyleSync application is now deployed on Azure with both frontend and backend in the same ecosystem! 
