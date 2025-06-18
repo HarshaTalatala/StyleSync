@@ -2,6 +2,31 @@
 
 A modern web application for intelligent wardrobe management and outfit planning using AI.
 
+## 🚀 Quick Start
+
+### 1. Clone and Setup
+```bash
+git clone https://github.com/YOUR_USERNAME/StyleSync.git
+cd StyleSync
+npm install
+```
+
+### 2. Environment Setup
+```bash
+# Copy the environment template
+cp env.template .env
+
+# Edit .env with your Firebase configuration
+# Get these values from your Firebase project console
+```
+
+### 3. Run Locally
+```bash
+npm run dev
+```
+
+Visit `http://localhost:5173` to see your app!
+
 ## 🚀 Features
 
 - **Smart Wardrobe Management**: Organize and categorize your clothing items
@@ -46,7 +71,7 @@ A modern web application for intelligent wardrobe management and outfit planning
    # Install frontend dependencies
    npm install
    
-   # Install backend dependencies
+   # Install backend dependencies (for local development)
    cd backend
    npm install
    cd ..
@@ -82,6 +107,8 @@ The frontend is automatically deployed to GitHub Pages via GitHub Actions.
 ### Backend - Azure Functions
 The backend is deployed as Azure Functions for serverless execution.
 
+**📖 See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions.**
+
 ## 📁 Project Structure
 
 ```
@@ -91,7 +118,7 @@ StyleSync/
 │   ├── pages/             # Page components
 │   ├── services/          # API and Firebase services
 │   └── context/           # React context providers
-├── backend/               # Backend Azure Functions
+├── backend/               # Backend Azure Functions (local development)
 │   ├── functions/         # Azure Function handlers
 │   └── shared/            # Shared utilities
 ├── .github/               # GitHub Actions workflows
