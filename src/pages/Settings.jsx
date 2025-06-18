@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { FaCog, FaUserCircle, FaSignOutAlt, FaLock, FaBell, FaPalette, FaArrowLeft, FaInfoCircle } from 'react-icons/fa'; 
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { db, auth } from '../services/firebase';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
 import toast from 'react-hot-toast';
 
@@ -33,17 +33,7 @@ const Settings = () => {
   const [message, setMessage] = useState({ text: '', type: '' });
   const [activeTab, setActiveTab] = useState('profile');
 
-  useEffect(() => {
-    if (currentUser) {
-      setProfile({
-        displayName: currentUser.displayName || currentUser.email.split('@')[0],
-        photoURL: currentUser.photoURL || ''
-      });
-      fetchUserSettings();
-    }
-  }, [currentUser]);
-
-  const fetchUserSettings = async () => {
+  const fetchUserSettings = useCallback(async () => {
     if (!currentUser) return;
     try {
       const userSettingsRef = doc(db, 'userSettings', currentUser.uid);
@@ -57,10 +47,21 @@ const Settings = () => {
         await setDoc(userSettingsRef, settings);
       }
     } catch (error) {
+      console.error('Failed to load settings:', error);
       setMessage({ text: 'Failed to load settings', type: 'error' });
       toast.error('Failed to load settings');
     }
-  };
+  }, [currentUser, settings]);
+
+  useEffect(() => {
+    if (currentUser) {
+      setProfile({
+        displayName: currentUser.displayName || currentUser.email.split('@')[0],
+        photoURL: currentUser.photoURL || ''
+      });
+      fetchUserSettings();
+    }
+  }, [currentUser, fetchUserSettings]);
 
   const updateUserProfile = async (e) => {
     e.preventDefault();

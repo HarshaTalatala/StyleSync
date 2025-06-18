@@ -32,6 +32,7 @@ const CalendarView = () => {
       setPlannedOutfitsMap(outfitsMap);
       setWardrobeItems(wardrobe);
     } catch (error) {
+      console.error('Failed to fetch calendar data:', error);
     } finally {
       setLoading(false);
     }
@@ -145,8 +146,8 @@ const CalendarView = () => {
           </div>
           
           <div className="grid grid-cols-7 border-b border-slate-100">
-            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(day => (
-              <div key={day} className="py-2.5 text-center text-xs md:text-sm font-medium text-slate-500">{day}</div>
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
+              <div key={day} className="py-2.5 text-center text-xs md:text-sm font-medium text-slate-500">{day.charAt(0)}</div>
             ))}
           </div>
 
@@ -206,7 +207,7 @@ const CalendarView = () => {
         </AnimatePresence>
       </div>
 
-      <AnimatePresence>
+      <motion.div>
         {isDrawerOpen && (
           <>
             <motion.div
@@ -243,7 +244,7 @@ const CalendarView = () => {
             </motion.div>
           </>
         )}
-      </AnimatePresence>
+      </motion.div>
       <div className="md:hidden h-16"></div>
     </div>
   );

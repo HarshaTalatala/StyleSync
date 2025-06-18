@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getAllPlannedOutfits, addFavoriteOutfit, getFavoriteOutfits, removeFavoriteOutfit, deletePlannedOutfit } from '../services/plannerService';
 import { getWardrobeItems } from '../services/wardrobeService';
@@ -21,7 +21,7 @@ const History = () => {
     { id: 'favorites', label: 'Favorites' }
   ];
 
-  const fetchOutfits = async () => {
+  const fetchOutfits = useCallback(async () => {
     if (!currentUser) return;
     setLoading(true);
     try {
@@ -35,15 +35,16 @@ const History = () => {
         setFavoriteOutfits(favorites);
         setWardrobeItems(wardrobe);
     } catch (error) {
+        console.error('Failed to fetch outfits:', error);
         // Optionally show a toast or set an error state
     } finally {
         setLoading(false);
     }
-  };
+  }, [currentUser]);
 
   useEffect(() => {
     fetchOutfits();
-  }, [currentUser]);
+  }, [fetchOutfits]);
 
   const isOutfitFavorite = (outfit) => {
     return favoriteOutfits.some(fav =>

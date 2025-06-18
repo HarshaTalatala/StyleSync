@@ -1,15 +1,13 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { motion } from 'framer-motion';
 import { FaTshirt } from 'react-icons/fa';
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
 const Navbar = () => {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [navHeight, setNavHeight] = useState(0);
   const navbarRef = useRef(null);
 
   const handleLogout = async () => {
@@ -27,13 +25,11 @@ const Navbar = () => {
   useEffect(() => {
     if (navbarRef.current) {
       const height = navbarRef.current.offsetHeight;
-      setNavHeight(height);
       document.documentElement.style.setProperty('--navbar-height', `${height}px`);
     }
     const handleResize = () => {
       if (navbarRef.current) {
         const height = navbarRef.current.offsetHeight;
-        setNavHeight(height);
         document.documentElement.style.setProperty('--navbar-height', `${height}px`);
       }
     };
@@ -42,11 +38,8 @@ const Navbar = () => {
   }, []);
   
   return (
-    <motion.nav 
+    <nav 
       ref={navbarRef}
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
       className="backdrop-blur-sm bg-slate-50/95 py-4 px-6 shadow-sm text-slate-800 border-b border-slate-200 sticky top-0 z-50"
     >
       <div className="container mx-auto flex justify-between items-center">
@@ -83,8 +76,7 @@ const Navbar = () => {
                   >
                     {item.name}
                     {location.pathname === item.path && (
-                      <motion.span 
-                        layoutId="navIndicator"
+                      <span 
                         className="absolute -bottom-1.5 left-0 right-0 h-0.5 bg-indigo-600"
                       />
                     )}
@@ -122,7 +114,7 @@ const Navbar = () => {
           )}
         </div>
       </div>
-    </motion.nav>
+    </nav>
   );
 };
 

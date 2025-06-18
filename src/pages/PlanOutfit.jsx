@@ -84,6 +84,7 @@ const PlanOutfit = () => {
             });
           }
         } catch (error) {
+          console.error('Failed to load data:', error);
           toast.error("Could not load data.");
         } finally {
           setLoading(false);

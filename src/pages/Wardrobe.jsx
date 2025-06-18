@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../context/AuthContext';
 import { uploadWardrobeItem, getWardrobeItems, deleteWardrobeItem } from '../services/wardrobeService';
@@ -170,17 +170,16 @@ const Wardrobe = () => {
   const [showFormModal, setShowFormModal] = useState(false);
   const [activeFilter, setActiveFilter] = useState('All');
 
-  const fetchWardrobe = async () => {
+  const fetchWardrobe = useCallback(async () => {
     if (!currentUser) return;
-    if (!loading) setLoading(true);
     const items = await getWardrobeItems(currentUser.uid);
     setWardrobe(items);
     setLoading(false);
-  };
+  }, [currentUser]);
 
   useEffect(() => {
     fetchWardrobe();
-  }, [currentUser]);
+  }, [fetchWardrobe]);
 
   const onSubmit = async (data) => {
     if (!currentUser) return toast.error("You must be logged in.");

@@ -8,8 +8,8 @@ import { getAuth } from 'firebase/auth';
 const getUserWardrobeCollectionRef = (uid) =>
   collection(db, `users/${uid}/wardrobe`);
 
-// Azure Functions API URL - will be updated during deployment
-const BACKEND_API_URL = import.meta.env.VITE_BACKEND_API_URL || 'https://your-azure-function-app.azurewebsites.net/api';
+// Backend API URL - using local development server
+const BACKEND_API_URL = import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:3001/api';
 
 export const uploadWardrobeItem = async (uid, itemData, imageFile) => {
   try {
@@ -28,8 +28,8 @@ export const uploadWardrobeItem = async (uid, itemData, imageFile) => {
     const itemId = itemRef.id;
     const blobName = `${itemId}.${imageFile.name.split('.').pop()}`;
     
-    // Use Azure Functions endpoint
-    const sasResponse = await fetch(`${BACKEND_API_URL}/generateSas`, {
+    // Use local backend endpoint
+    const sasResponse = await fetch(`${BACKEND_API_URL}/generate-sas`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -61,6 +61,7 @@ export const uploadWardrobeItem = async (uid, itemData, imageFile) => {
     });
     return true;
   } catch (error) {
+    console.error('Error uploading item:', error);
     toast.error(`Error uploading item: ${error.message}`);
     return false;
   }
@@ -73,6 +74,7 @@ export const getWardrobeItems = async (uid) => {
         const items = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         return items;
     } catch (error) {
+        console.error('Error fetching wardrobe items:', error);
         toast.error(`Error fetching wardrobe items: ${error.message}`);
         return [];
     }
@@ -88,7 +90,7 @@ export const deleteWardrobeItem = async (uid, itemId, imageURL) => {
       const user = auth.currentUser;
       if (user) {
         const idToken = await user.getIdToken();
-        await fetch(`${BACKEND_API_URL}/deleteBlob`, {
+        await fetch(`${BACKEND_API_URL}/delete-blob`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -102,6 +104,7 @@ export const deleteWardrobeItem = async (uid, itemId, imageURL) => {
     await deleteDoc(itemRef);
     return true;
   } catch (error) {
+    console.error('Error deleting item:', error);
     toast.error(`Error deleting item: ${error.message}`);
     return false;
   }

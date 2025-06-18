@@ -1,15 +1,10 @@
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { FaLeaf, FaTshirt, FaCloudSun, FaMagic } from 'react-icons/fa';
 
 const LandingPage = () => {
   return (
     <div className="flex flex-col bg-white lg:flex-row lg:h-[calc(100vh-73px)] lg:overflow-hidden">
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2, ease: 'easeOut' }}
-        style={{ willChange: 'opacity, transform' }}
+      <div 
         className="w-full lg:w-1/2 px-6 py-16 sm:px-8 sm:py-20 lg:p-10 xl:p-14 flex flex-col justify-center relative overflow-hidden text-center lg:text-left"
       >
         <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-slate-50 rounded-full opacity-70 z-0" aria-hidden="true"></div>
@@ -28,7 +23,7 @@ const LandingPage = () => {
             Get Started
           </Link>
         </div>
-      </motion.div>
+      </div>
       <div className="w-full lg:w-1/2 bg-gradient-to-br from-slate-50 to-slate-100 p-6 sm:p-8 lg:p-10 flex items-center justify-center mt-12 lg:mt-0">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 lg:gap-6 w-full max-w-xl">
           {[
@@ -53,11 +48,8 @@ const LandingPage = () => {
               desc: "Personalized outfit suggestions" 
             },
           ].map((feature, index) => (
-            <motion.div 
+            <div 
               key={index}
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.5, delay: index * 0.1 + 0.3 }}
               className="bg-white p-5 lg:p-6 rounded-lg border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 group h-full"
             >
               <div className="text-indigo-600 mb-3 lg:mb-4 p-2 bg-slate-50 inline-block rounded-md group-hover:bg-indigo-50 transition-colors duration-300">
@@ -69,7 +61,7 @@ const LandingPage = () => {
               <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
                 {feature.desc}
               </p>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>
