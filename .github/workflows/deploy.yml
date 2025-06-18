@@ -53,5 +53,6 @@ jobs:
     - name: Deployment Status
       run: |
         echo "Frontend deployed successfully to Azure Static Web Apps!"
+        echo "Your app is available at: https://your-app-name.azurestaticapps.net"
         echo "Backend should be deployed separately to Azure Functions"
         echo "Make sure to update VITE_BACKEND_API_URL with your Azure Functions URL" 
