@@ -8,7 +8,6 @@ import { getAuth } from 'firebase/auth';
 const getUserWardrobeCollectionRef = (uid) =>
   collection(db, `users/${uid}/wardrobe`);
 
-// Use an explicit environment variable for the backend URL
 const BACKEND_API_URL = import.meta.env.VITE_BACKEND_API_URL || '/api';
 
 export const uploadWardrobeItem = async (uid, itemData, imageFile) => {
@@ -24,7 +23,7 @@ export const uploadWardrobeItem = async (uid, itemData, imageFile) => {
         return false;
     }
     
-    // *** FIX: Force a token refresh by passing `true` ***
+    // *** THE CRUCIAL FIX IS HERE: Force a token refresh by passing `true` ***
     const idToken = await user.getIdToken(true);
 
     const itemRef = doc(getUserWardrobeCollectionRef(uid));
@@ -44,7 +43,6 @@ export const uploadWardrobeItem = async (uid, itemData, imageFile) => {
 
     if (!sasResponse.ok) {
       const errorBody = await sasResponse.text();
-      // Added errorBody for better debugging from the console.
       throw new Error(`Failed to get SAS URL: ${sasResponse.statusText} - ${errorBody}`);
     }
 
@@ -101,7 +99,7 @@ export const deleteWardrobeItem = async (uid, itemId, imagePath) => {
       const auth = getAuth();
       const user = auth.currentUser;
       if (user) {
-        // *** FIX: Force a token refresh by passing `true` ***
+        // *** THE CRUCIAL FIX IS HERE: Force a token refresh by passing `true` ***
         const idToken = await user.getIdToken(true);
 
         await fetch(`${BACKEND_API_URL}/deleteBlob`, {
