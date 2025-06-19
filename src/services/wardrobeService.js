@@ -25,6 +25,26 @@ export const uploadWardrobeItem = async (uid, itemData, imageFile) => {
     
     // *** THE CRUCIAL FIX IS HERE: Force a token refresh by passing `true` ***
     const idToken = await user.getIdToken(true);
+    
+    // Debug: Log token information
+    console.log("User authenticated:", !!user);
+    console.log("User UID:", user.uid);
+    console.log("Token length:", idToken ? idToken.length : 0);
+    console.log("Token starts with:", idToken ? idToken.substring(0, 20) + "..." : "No token");
+    
+    // Decode token header to check for 'kid' claim
+    if (idToken) {
+      try {
+        const tokenParts = idToken.split('.');
+        if (tokenParts.length === 3) {
+          const header = JSON.parse(atob(tokenParts[0]));
+          console.log("Token header:", header);
+          console.log("Has 'kid' claim:", !!header.kid);
+        }
+      } catch (e) {
+        console.log("Could not decode token header:", e);
+      }
+    }
 
     const itemRef = doc(getUserWardrobeCollectionRef(uid));
     const itemId = itemRef.id;
