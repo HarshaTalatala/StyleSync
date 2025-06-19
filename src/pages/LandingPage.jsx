@@ -17,7 +17,7 @@ const LandingPage = () => {
             Simplify your wardrobe management and discover perfect outfit combinations tailored to your style and the weather.
           </p>
           <Link 
-            to="/Signup" 
+            to="/signup" 
             className="inline-block w-fit px-8 py-3 lg:px-10 lg:py-4 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white text-base lg:text-lg rounded-md hover:from-indigo-700 hover:to-indigo-800 transition-all duration-300 shadow-sm"
           >
             Get Started

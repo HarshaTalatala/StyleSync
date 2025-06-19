@@ -1,0 +1,10 @@
+{
+  "name": "stylesync-api",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "@azure/storage-blob": "^12.15.0",
+    "firebase-admin": "^11.10.1"
+  }
+}

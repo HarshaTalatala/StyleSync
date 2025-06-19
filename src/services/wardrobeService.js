@@ -9,7 +9,7 @@ const getUserWardrobeCollectionRef = (uid) =>
   collection(db, `users/${uid}/wardrobe`);
 
 // Backend API URL - using local development server
-const BACKEND_API_URL = import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:3001/api';
+const BACKEND_API_URL = import.meta.env.VITE_BACKEND_API_URL || '/api';
 
 export const uploadWardrobeItem = async (uid, itemData, imageFile) => {
   try {
@@ -29,7 +29,7 @@ export const uploadWardrobeItem = async (uid, itemData, imageFile) => {
     const blobName = `${itemId}.${imageFile.name.split('.').pop()}`;
     
     // Use local backend endpoint
-    const sasResponse = await fetch(`${BACKEND_API_URL}/generate-sas`, {
+    const sasResponse = await fetch(`${BACKEND_API_URL}/generateSas`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -52,8 +52,9 @@ export const uploadWardrobeItem = async (uid, itemData, imageFile) => {
     if (!uploadResponse.ok) {
       throw new Error(`Failed to upload image to Azure: ${uploadResponse.statusText}`);
     }
+    const { image, ...restItemData } = itemData;
     await setDoc(itemRef, {
-      ...itemData,
+      ...restItemData,
       itemId: itemId,
       imageURL: blobUrl,
       uploadedAt: serverTimestamp(),
@@ -90,13 +91,28 @@ export const deleteWardrobeItem = async (uid, itemId, imageURL) => {
       const user = auth.currentUser;
       if (user) {
         const idToken = await user.getIdToken();
-        await fetch(`${BACKEND_API_URL}/delete-blob`, {
+        // Extract blobName from imageURL
+        let blobName = imageURL;
+        try {
+          // Azure Blob URL format: https://<account>.blob.core.windows.net/<container>/<blobName>
+          const url = new URL(imageURL);
+          // Remove leading slash from pathname
+          blobName = url.pathname.replace(/^\//, '');
+          // Remove container name from blobName if present
+          const containerName = blobName.split('/')[0];
+          if (containerName === (process.env.AZURE_STORAGE_CONTAINER_NAME || 'stylesync-wardrobe-images')) {
+            blobName = blobName.substring(containerName.length + 1);
+          }
+        } catch (e) {
+          // fallback: use imageURL as is
+        }
+        await fetch(`${BACKEND_API_URL}/deleteBlob`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${idToken}`
           },
-          body: JSON.stringify({ imageURL }),
+          body: JSON.stringify({ blobName }),
         });
       }
     }

@@ -102,8 +102,15 @@ firebase-debug.log
 firestore-debug.log
 ui-debug.log
 
-# Azure Functions
-local.settings.json
+# Azure Functions local settings
+api/local.settings.json
 
-# Backend folder (Azure Functions deployed separately)
+# Firebase service account (never commit secrets)
+backend/firebase-service-account.json
+
+# Misc
+*.log
+*.tmp
+
+# Backend directory
 backend/
