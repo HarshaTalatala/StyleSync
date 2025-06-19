@@ -3,10 +3,14 @@ const admin = require('firebase-admin');
 
 // Initialize Firebase Admin SDK if not already initialized
 if (!admin.apps.length) {
-  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-  });
+  try {
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount)
+    });
+  } catch(e) {
+    console.error('Firebase Admin SDK initialization error:', e);
+  }
 }
 
 const authenticateToken = async (context, req) => {
@@ -24,9 +28,10 @@ const authenticateToken = async (context, req) => {
     req.user = decodedToken;
     return true;
   } catch (error) {
+    context.log.error("Token verification failed:", error); // Detailed logging
     context.res = {
       status: 403,
-      body: 'Invalid or expired token.'
+      body: `Authentication error: ${error.message}` // More descriptive error
     };
     return false;
   }
@@ -43,7 +48,8 @@ module.exports = async function (context, req) {
   context.res = { headers: corsHeaders };
   try {
     if (req.method === 'OPTIONS') {
-      context.res.status = 200;
+      context.res.status = 204;
+      context.res.body = '';
       return;
     }
     if (!(await authenticateToken(context, req))) {
@@ -61,17 +67,18 @@ module.exports = async function (context, req) {
     }
     const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
     const containerName = process.env.AZURE_STORAGE_CONTAINER_NAME || 'stylesync-wardrobe-images';
-    const blobServiceClient = BlobServiceClient.fromConnectionString(connectionString);
-    const containerClient = blobServiceClient.getContainerClient(containerName);
-    const blobClient = containerClient.getBlockBlobClient(blobName);
-
-    // Generate SAS token for upload
+    
     // Parse account name and key from connection string
     const matches = connectionString.match(/AccountName=([^;]+);AccountKey=([^;]+)/);
     if (!matches) throw new Error('Invalid Azure Storage connection string');
     const accountName = matches[1];
     const accountKey = matches[2];
     const sharedKeyCredential = new StorageSharedKeyCredential(accountName, accountKey);
+
+    const blobServiceClient = BlobServiceClient.fromConnectionString(connectionString);
+    const containerClient = blobServiceClient.getContainerClient(containerName);
+    const blobClient = containerClient.getBlockBlobClient(blobName);
+
     const expiresOn = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
     const sasToken = generateBlobSASQueryParameters({
       containerName,
@@ -81,13 +88,16 @@ module.exports = async function (context, req) {
       expiresOn,
       protocol: SASProtocol.Https
     }, sharedKeyCredential).toString();
+
     const sasUrl = `${blobClient.url}?${sasToken}`;
+    
     context.res = {
       status: 200,
       headers: corsHeaders,
       body: { sasUrl, blobUrl: blobClient.url }
     };
   } catch (error) {
+    context.log.error('Error in generateSas:', error);
     context.res = {
       status: 500,
       headers: corsHeaders,

@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { useAuth } from '../context/AuthContext';
 import { uploadWardrobeItem, getWardrobeItems, deleteWardrobeItem } from '../services/wardrobeService';
 import toast from 'react-hot-toast';
-import { FaPlus, FaTshirt, FaTags, FaTrash, FaArrowLeft, FaTimes, FaEllipsisV } from 'react-icons/fa';
+import { FaPlus, FaTshirt, FaTrash, FaArrowLeft, FaTimes, FaEllipsisV } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
@@ -13,13 +13,16 @@ const colors = ['Red', 'Blue', 'Green', 'Yellow', 'Black', 'White', 'Gray', 'Bro
 
 const WardrobeItemCard = ({ item, onDelete }) => {
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // This internal handler now just calls the onDelete prop passed from the parent.
   const handleDeleteClick = (e) => {
-    e.stopPropagation();
+    e.stopPropagation(); // Prevent card click events
     setMenuOpen(false);
     if (window.confirm("Are you sure you want to delete this item?")) {
-        onDelete(item.id, item.imageURL);
+        onDelete();
     }
   };
+
   return (
     <motion.div layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden flex flex-col group">
       <div className="relative h-48 sm:h-56 overflow-hidden">
@@ -78,15 +81,21 @@ const AddItemModal = ({ isOpen, onClose, onSubmit, uploading }) => {
     e.stopPropagation();
     setDragActive(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      setValue('image', [e.dataTransfer.files[0]]);
+      setValue('image', e.dataTransfer.files);
     }
   };
 
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl mx-auto flex flex-col max-h-[96vh] overflow-hidden focus:outline-none border border-slate-200" role="dialog" aria-modal="true" aria-labelledby="addItemModalTitle">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ scale: 0.95, y: 20 }}
+            animate={{ scale: 1, y: 0 }}
+            exit={{ scale: 0.95, y: 20, opacity: 0 }}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl mx-auto flex flex-col max-h-[96vh] overflow-hidden focus:outline-none border border-slate-200" role="dialog" aria-modal="true" aria-labelledby="addItemModalTitle"
+          >
             <header className="p-7 flex items-center justify-between border-b bg-white flex-shrink-0">
               <h2 id="addItemModalTitle" className="text-2xl font-bold text-slate-800 tracking-tight">Add New Wardrobe Item</h2>
               <button onClick={onClose} className="p-2 rounded-full text-slate-500 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-200" aria-label="Close modal"><FaTimes size={20} /></button>
@@ -154,7 +163,7 @@ const AddItemModal = ({ isOpen, onClose, onSubmit, uploading }) => {
                 <span>{uploading ? 'Uploading...' : 'Add to Wardrobe'}</span>
               </button>
             </footer>
-          </div>
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
@@ -193,12 +202,18 @@ const Wardrobe = () => {
     setUploading(false);
   };
 
-  const handleDelete = async (itemId, imageURL) => {
+  /**
+   * UPDATED: Handles item deletion.
+   * It now accepts the entire item object to access `item.id` and `item.imagePath`.
+   */
+  const handleDelete = async (item) => {
     if (!currentUser) return;
-    const success = await deleteWardrobeItem(currentUser.uid, itemId, imageURL);
+    // Pass the item's ID and its stored imagePath to the service function
+    const success = await deleteWardrobeItem(currentUser.uid, item.id, item.imagePath);
     if (success) {
       toast.success("Item deleted.");
-      setWardrobe(prev => prev.filter(item => item.id !== itemId)); // Optimistic UI update
+      // Optimistically update the UI to remove the item instantly
+      setWardrobe(prev => prev.filter(i => i.id !== item.id)); 
     }
   };
 
@@ -250,9 +265,10 @@ const Wardrobe = () => {
               </p>
             </div>
         ) : (
-            <motion.div layout className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            <motion.div layout className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               <AnimatePresence>
-                {filteredWardrobe.map(item => <WardrobeItemCard key={item.id} item={item} onDelete={handleDelete} />)}
+                {/* UPDATED: The onDelete prop now passes a function that calls handleDelete with the specific item */}
+                {filteredWardrobe.map(item => <WardrobeItemCard key={item.id} item={item} onDelete={() => handleDelete(item)} />)}
               </AnimatePresence>
             </motion.div>
         )}

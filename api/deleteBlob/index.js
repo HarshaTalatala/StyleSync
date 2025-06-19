@@ -3,10 +3,14 @@ const admin = require('firebase-admin');
 
 // Initialize Firebase Admin SDK if not already initialized
 if (!admin.apps.length) {
-  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-  });
+  try {
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount)
+    });
+  } catch(e) {
+    console.error('Firebase Admin SDK initialization error:', e);
+  }
 }
 
 const authenticateToken = async (context, req) => {
@@ -24,9 +28,10 @@ const authenticateToken = async (context, req) => {
     req.user = decodedToken;
     return true;
   } catch (error) {
+    context.log.error("Token verification failed:", error); // Detailed logging
     context.res = {
       status: 403,
-      body: 'Invalid or expired token.'
+      body: `Authentication error: ${error.message}` // More descriptive error
     };
     return false;
   }
@@ -43,7 +48,8 @@ module.exports = async function (context, req) {
   context.res = { headers: corsHeaders };
   try {
     if (req.method === 'OPTIONS') {
-      context.res.status = 200;
+      context.res.status = 204;
+      context.res.body = '';
       return;
     }
     if (!(await authenticateToken(context, req))) {
@@ -64,13 +70,14 @@ module.exports = async function (context, req) {
     const blobServiceClient = BlobServiceClient.fromConnectionString(connectionString);
     const containerClient = blobServiceClient.getContainerClient(containerName);
     const blobClient = containerClient.getBlockBlobClient(blobName);
-    await blobClient.delete();
+    await blobClient.deleteIfExists();
     context.res = {
       status: 200,
       headers: corsHeaders,
       body: { message: 'Blob deleted successfully.' }
     };
   } catch (error) {
+    context.log.error('Error in deleteBlob:', error);
     context.res = {
       status: 500,
       headers: corsHeaders,

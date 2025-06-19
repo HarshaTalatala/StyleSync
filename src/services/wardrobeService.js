@@ -8,7 +8,6 @@ import { getAuth } from 'firebase/auth';
 const getUserWardrobeCollectionRef = (uid) =>
   collection(db, `users/${uid}/wardrobe`);
 
-// Backend API URL - using local development server
 const BACKEND_API_URL = import.meta.env.VITE_BACKEND_API_URL || '/api';
 
 export const uploadWardrobeItem = async (uid, itemData, imageFile) => {
@@ -26,21 +25,26 @@ export const uploadWardrobeItem = async (uid, itemData, imageFile) => {
     const idToken = await user.getIdToken();
     const itemRef = doc(getUserWardrobeCollectionRef(uid));
     const itemId = itemRef.id;
-    const blobName = `${itemId}.${imageFile.name.split('.').pop()}`;
+    const blobExtension = imageFile.name.split('.').pop();
+    const blobName = `${itemId}.${blobExtension}`;
+    const fullBlobPath = `${uid}/wardrobeImages/${blobName}`;
     
-    // Use local backend endpoint
     const sasResponse = await fetch(`${BACKEND_API_URL}/generateSas`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${idToken}`
       },
-      body: JSON.stringify({ blobName: `${uid}/wardrobeImages/${blobName}` }),
+      body: JSON.stringify({ blobName: fullBlobPath }),
     });
+
     if (!sasResponse.ok) {
-      throw new Error(`Failed to get SAS URL: ${sasResponse.statusText}`);
+      const errorBody = await sasResponse.text();
+      throw new Error(`Failed to get SAS URL: ${sasResponse.statusText} - ${errorBody}`);
     }
+
     const { sasUrl, blobUrl } = await sasResponse.json();
+    
     const uploadResponse = await fetch(sasUrl, {
       method: 'PUT',
       headers: {
@@ -49,14 +53,17 @@ export const uploadWardrobeItem = async (uid, itemData, imageFile) => {
       },
       body: imageFile,
     });
+
     if (!uploadResponse.ok) {
       throw new Error(`Failed to upload image to Azure: ${uploadResponse.statusText}`);
     }
+
     const { image, ...restItemData } = itemData;
     await setDoc(itemRef, {
       ...restItemData,
-      itemId: itemId,
+      id: itemId, // Also store the id in the document
       imageURL: blobUrl,
+      imagePath: fullBlobPath, // <-- Store the path for easy deletion
       uploadedAt: serverTimestamp(),
       userId: uid
     });
@@ -81,38 +88,22 @@ export const getWardrobeItems = async (uid) => {
     }
 };
 
-export const deleteWardrobeItem = async (uid, itemId, imageURL) => {
+export const deleteWardrobeItem = async (uid, itemId, imagePath) => {
   try {
     const itemRef = doc(getUserWardrobeCollectionRef(uid), itemId);
     
-    // Delete image from Azure Storage if imageURL exists
-    if (imageURL) {
+    if (imagePath) {
       const auth = getAuth();
       const user = auth.currentUser;
       if (user) {
         const idToken = await user.getIdToken();
-        // Extract blobName from imageURL
-        let blobName = imageURL;
-        try {
-          // Azure Blob URL format: https://<account>.blob.core.windows.net/<container>/<blobName>
-          const url = new URL(imageURL);
-          // Remove leading slash from pathname
-          blobName = url.pathname.replace(/^\//, '');
-          // Remove container name from blobName if present
-          const containerName = blobName.split('/')[0];
-          if (containerName === (process.env.AZURE_STORAGE_CONTAINER_NAME || 'stylesync-wardrobe-images')) {
-            blobName = blobName.substring(containerName.length + 1);
-          }
-        } catch (e) {
-          // fallback: use imageURL as is
-        }
         await fetch(`${BACKEND_API_URL}/deleteBlob`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${idToken}`
           },
-          body: JSON.stringify({ blobName }),
+          body: JSON.stringify({ blobName: imagePath }), // Use the stored path
         });
       }
     }
