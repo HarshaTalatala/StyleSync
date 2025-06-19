@@ -8,6 +8,7 @@ import { getAuth } from 'firebase/auth';
 const getUserWardrobeCollectionRef = (uid) =>
   collection(db, `users/${uid}/wardrobe`);
 
+// Use an explicit environment variable for the backend URL
 const BACKEND_API_URL = import.meta.env.VITE_BACKEND_API_URL || '/api';
 
 export const uploadWardrobeItem = async (uid, itemData, imageFile) => {
@@ -22,7 +23,10 @@ export const uploadWardrobeItem = async (uid, itemData, imageFile) => {
         toast.error("User not authenticated.");
         return false;
     }
-    const idToken = await user.getIdToken();
+    
+    // *** FIX: Force a token refresh by passing `true` ***
+    const idToken = await user.getIdToken(true);
+
     const itemRef = doc(getUserWardrobeCollectionRef(uid));
     const itemId = itemRef.id;
     const blobExtension = imageFile.name.split('.').pop();
@@ -40,6 +44,7 @@ export const uploadWardrobeItem = async (uid, itemData, imageFile) => {
 
     if (!sasResponse.ok) {
       const errorBody = await sasResponse.text();
+      // Added errorBody for better debugging from the console.
       throw new Error(`Failed to get SAS URL: ${sasResponse.statusText} - ${errorBody}`);
     }
 
@@ -61,9 +66,9 @@ export const uploadWardrobeItem = async (uid, itemData, imageFile) => {
     const { image, ...restItemData } = itemData;
     await setDoc(itemRef, {
       ...restItemData,
-      id: itemId, // Also store the id in the document
+      id: itemId,
       imageURL: blobUrl,
-      imagePath: fullBlobPath, // <-- Store the path for easy deletion
+      imagePath: fullBlobPath,
       uploadedAt: serverTimestamp(),
       userId: uid
     });
@@ -96,14 +101,16 @@ export const deleteWardrobeItem = async (uid, itemId, imagePath) => {
       const auth = getAuth();
       const user = auth.currentUser;
       if (user) {
-        const idToken = await user.getIdToken();
+        // *** FIX: Force a token refresh by passing `true` ***
+        const idToken = await user.getIdToken(true);
+
         await fetch(`${BACKEND_API_URL}/deleteBlob`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${idToken}`
           },
-          body: JSON.stringify({ blobName: imagePath }), // Use the stored path
+          body: JSON.stringify({ blobName: imagePath }),
         });
       }
     }
