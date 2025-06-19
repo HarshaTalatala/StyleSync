@@ -98,18 +98,24 @@ export const deleteWardrobeItem = async (uid, itemId, imagePath) => {
     if (imagePath) {
       const auth = getAuth();
       const user = auth.currentUser;
-      if (user) {
-        // *** THE CRUCIAL FIX IS HERE: Force a token refresh by passing `true` ***
-        const idToken = await user.getIdToken(true);
+      if (!user) {
+        toast.error("User not authenticated.");
+        return false;
+      }
+      const idToken = await user.getIdToken(true); // Force refresh
 
-        await fetch(`${BACKEND_API_URL}/deleteBlob`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${idToken}`
-          },
-          body: JSON.stringify({ blobName: imagePath }),
-        });
+      const deleteBlobResponse = await fetch(`${BACKEND_API_URL}/deleteBlob`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify({ blobName: imagePath }),
+      });
+
+      if (!deleteBlobResponse.ok) {
+        const errorBody = await deleteBlobResponse.text();
+        throw new Error(`Failed to delete blob: ${deleteBlobResponse.statusText} - ${errorBody}`);
       }
     }
     
