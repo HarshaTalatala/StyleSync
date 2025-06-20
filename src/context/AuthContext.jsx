@@ -103,14 +103,8 @@ export function AuthProvider({ children }) {
       }
       setLoading(false);
     });
-    // Log out on tab/window close
-    const handleUnload = () => {
-      logout();
-    };
-    window.addEventListener('unload', handleUnload);
     return () => {
       unsubscribe();
-      window.removeEventListener('unload', handleUnload);
     };
   }, []);
   const value = {
