@@ -9,26 +9,23 @@ import toast from 'react-hot-toast';
 import ConfirmDialog from '../components/ConfirmDialog';
 
 const Settings = () => {  const { currentUser, logout, updatePassword, updateUserProfile: authUpdateProfile, refreshUser } = useAuth();
-  const navigate = useNavigate();  // Simple direct approach - no complex refresh mechanism needed
-  
+  const navigate = useNavigate();
   const [settings, setSettings] = useState({
     theme: 'light',
     notifications: true,
     privacyMode: false,
     language: 'en'
   });
-  
   const [profile, setProfile] = useState({
     displayName: '',
     photoURL: ''
   });
-  
   const [passwords, setPasswords] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   });
-    const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
   const [activeTab, setActiveTab] = useState('profile');
   const [confirmDialog, setConfirmDialog] = useState({
@@ -50,15 +47,12 @@ const Settings = () => {  const { currentUser, logout, updatePassword, updateUse
         await setDoc(userSettingsRef, settings);
       }
     } catch (error) {
-      console.error('Failed to load settings:', error);
       setMessage({ text: 'Failed to load settings', type: 'error' });
       toast.error('Failed to load settings');
     }
   }, [currentUser, settings]);  useEffect(() => {
     if (currentUser) {
-      // Only set if not already set (prevents overwriting user input)
       if (!userDisplayName) {
-        console.log("Setting up profile from current user:", currentUser);
         const displayName = currentUser.displayName || currentUser.email.split('@')[0];
         setProfile({
           displayName: displayName,
@@ -66,30 +60,22 @@ const Settings = () => {  const { currentUser, logout, updatePassword, updateUse
         });
         setUserDisplayName(displayName);
       }
-      // Fetch settings
       fetchUserSettings();
     }
   }, [currentUser, fetchUserSettings]);
 
   const updateUserProfile = async (e) => {
     e.preventDefault();
-      // Basic validation
     if (!userDisplayName || userDisplayName.trim() === '') {
       toast.error("Display name cannot be empty");
       return;
     }
-    
     setLoading(true);
     try {
       if (!currentUser) {
         throw new Error("You must be logged in to update your profile");
       }
-      
-      // Use our separate state for display name
       const newDisplayName = userDisplayName.trim();
-      console.log("Updating display name to:", newDisplayName);
-      
-      // First, store in Firestore for additional data and consistency
       const userProfileRef = doc(db, 'userProfiles', currentUser.uid);
       await setDoc(userProfileRef, {
         displayName: newDisplayName,
@@ -97,29 +83,19 @@ const Settings = () => {  const { currentUser, logout, updatePassword, updateUse
         updatedAt: new Date(),
         email: currentUser.email
       }, { merge: true });
-      
-      console.log("Firestore profile updated successfully");
-      
-      // Update Firebase Auth profile
       await authUpdateProfile({
         displayName: newDisplayName,
         photoURL: profile.photoURL || ''
       });
-      
-      console.log("Firebase Auth profile updated successfully");
-        // Ensure our local state is consistent with what we just saved
       setUserDisplayName(newDisplayName);
       setProfile(prev => ({
         ...prev,
         displayName: newDisplayName
       }));
-      
-      // Show success message
       setMessage({ text: 'Profile updated successfully', type: 'success' });
       toast.success('Profile updated successfully!');
       setTimeout(() => setMessage({ text: '', type: '' }), 3000);
     } catch (error) {
-      console.error("Profile update error:", error);
       setMessage({ text: `Failed to update profile: ${error.message}`, type: 'error' });
       toast.error(`Failed to update profile: ${error.message}`);
     } finally {
@@ -142,33 +118,24 @@ const Settings = () => {  const { currentUser, logout, updatePassword, updateUse
   };
   const handlePasswordChange = async (e) => {
     e.preventDefault();
-    
-    // Password validation
     if (passwords.newPassword !== passwords.confirmPassword) {
       toast.error("New passwords don't match");
       return;
     }
-    
     if (passwords.newPassword.length < 6) {
       toast.error("New password must be at least 6 characters");
       return;
     }
-    
     if (!passwords.currentPassword) {
       toast.error("Current password is required");
       return;
     }
-    
     setLoading(true);
     try {
-      // Use the updated updatePassword function from AuthContext
       await updatePassword(passwords.currentPassword, passwords.newPassword);
       toast.success('Password updated successfully!');
       setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (error) {
-      console.error("Password update error:", error);
-      
-      // Provide more specific error messages
       if (error.code === 'auth/wrong-password') {
         toast.error("Current password is incorrect");
       } else if (error.code === 'auth/requires-recent-login') {
@@ -176,7 +143,6 @@ const Settings = () => {  const { currentUser, logout, updatePassword, updateUse
       } else {
         toast.error(`Failed to update password: ${error.message}`);
       }
-      
       setMessage({ text: `Failed to update password: ${error.message}`, type: 'error' });
     } finally {
       setLoading(false);

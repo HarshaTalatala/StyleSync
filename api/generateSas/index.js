@@ -20,13 +20,9 @@ module.exports = async function (context, req) {
 
     // TEMPORARY DEBUG: Log authorization header information
     const authHeader = req.headers.authorization;
-    context.log.info("Authorization header present: " + !!authHeader);
     if (authHeader) {
-      context.log.info("Auth header starts with: " + authHeader.substring(0, 20) + "...");
       if (authHeader.startsWith('Bearer ')) {
         const token = authHeader.split('Bearer ')[1];
-        context.log.info("Token length: " + token.length);
-        context.log.info("Token starts with: " + token.substring(0, 20) + "...");
       }
     }
     
@@ -35,7 +31,6 @@ module.exports = async function (context, req) {
     
     // TEMPORARY FIX: Even if authentication fails, proceed with a dummy user for testing
     if (!decodedToken) {
-      context.log.warn("Authentication failed, but proceeding with dummy user for testing");
       req.user = { uid: "test-user" };
     } else {
       req.user = decodedToken;
@@ -82,7 +77,6 @@ module.exports = async function (context, req) {
       body: { sasUrl, blobUrl: blobClient.url }
     };
   } catch (error) {
-    context.log.error('Error in generateSas:', error);
     context.res = {
       status: 500,
       headers: corsHeaders,

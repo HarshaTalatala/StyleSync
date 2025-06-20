@@ -101,7 +101,6 @@ const Dashboard = () => {
           const sorted = [...items].sort((a, b) => b.uploadedAt?.seconds - a.uploadedAt?.seconds);
           setRecentItems(sorted.slice(0, 4));
         } catch (error) {
-          console.error('Failed to fetch wardrobe items:', error);
           setAllItems([]);
           setRecentItems([]);
         } finally {

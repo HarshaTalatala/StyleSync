@@ -17,7 +17,6 @@ export const savePlannedOutfit = async (userId, date, outfitData) => {
     });
     return true;
   } catch (error) {
-    console.error('Error saving planned outfit:', error);
     return false;
   }
 };
@@ -34,7 +33,6 @@ export const getPlannedOutfit = async (userId, date) => {
     }
     return null;
   } catch (error) {
-    console.error('Error getting planned outfit:', error);
     return null;
   }
 };
@@ -49,7 +47,6 @@ export const getAllPlannedOutfits = async (userId) => {
       ...doc.data()
     }));
   } catch (error) {
-    console.error('Error getting all planned outfits:', error);
     return [];
   }
 };
@@ -63,7 +60,6 @@ export const addFavoriteOutfit = async (userId, outfitData) => {
     });
     return true;
   } catch (error) {
-    console.error('Error adding favorite outfit:', error);
     return false;
   }
 };
@@ -78,7 +74,6 @@ export const getFavoriteOutfits = async (userId) => {
       ...doc.data()
     }));
   } catch (error) {
-    console.error('Error getting favorite outfits:', error);
     return [];
   }
 };
@@ -102,7 +97,6 @@ export const removeFavoriteOutfit = async (userId, outfitData) => {
     }
     return false;
   } catch (error) {
-    console.error('Error removing favorite outfit:', error);
     return false;
   }
 };
@@ -112,7 +106,6 @@ export const deletePlannedOutfit = async (userId, outfitId) => {
     await deleteDoc(doc(db, `users/${userId}/planner`, outfitId));
     return true;
   } catch (error) {
-    console.error('Error deleting planned outfit:', error);
     return false;
   }
 };

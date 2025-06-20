@@ -32,7 +32,6 @@ const CalendarView = () => {
       setPlannedOutfitsMap(outfitsMap);
       setWardrobeItems(wardrobe);
     } catch (error) {
-      console.error('Failed to fetch calendar data:', error);
     } finally {
       setLoading(false);
     }

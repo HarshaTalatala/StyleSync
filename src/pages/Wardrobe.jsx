@@ -12,12 +12,11 @@ const categories = ['Top', 'Bottom', 'Shoes', 'Accessory'];
 const commonTags = ['Casual', 'Formal', 'Sporty', 'Summer', 'Winter', 'Spring', 'Autumn'];
 const colors = ['Red', 'Blue', 'Green', 'Yellow', 'Black', 'White', 'Gray', 'Brown', 'Purple', 'Pink'];
 
-const WardrobeItemCard = ({ item, onDelete, onDeleteRequest }) => {
+const WardrobeItemCard = ({ item, onDeleteRequest }) => {
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // This internal handler now calls the onDeleteRequest prop to show the confirm dialog
   const handleDeleteClick = (e) => {
-    e.stopPropagation(); // Prevent card click events
+    e.stopPropagation();
     setMenuOpen(false);
     onDeleteRequest(item);
   };
@@ -68,7 +67,6 @@ const AddItemModal = ({ isOpen, onClose, onSubmit, uploading }) => {
     });
   };
 
-  // Drag and drop handlers
   const handleDrag = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -204,43 +202,28 @@ const Wardrobe = () => {
     }
     setUploading(false);
   };
-  /**
-   * Show the confirmation dialog before deletion
-   */
   const handleDeleteRequest = (item) => {
     setConfirmDialog({
       isOpen: true,
       item: item
     });
   };
-
-  /**
-   * UPDATED: Handles item deletion.
-   * It now accepts the entire item object to access `item.id` and `item.imagePath`.
-   */
   const handleDelete = async () => {
     const item = confirmDialog.item;
     if (!currentUser || !item) return;
-    
-    // Pass the item's ID and its stored imagePath to the service function
     const success = await deleteWardrobeItem(currentUser.uid, item.id, item.imagePath);
     if (success) {
       toast.success("Item deleted.");
-      // Optimistically update the UI to remove the item instantly
       setWardrobe(prev => prev.filter(i => i.id !== item.id)); 
     }
   };
-
   const filteredWardrobe = activeFilter === 'All'
     ? wardrobe
     : wardrobe.filter(item => item.category === activeFilter);
-  
   const filterCategories = ['All', ...categories];
-
   return (
     <div className="h-screen bg-slate-50 flex flex-col">
       <AddItemModal isOpen={showFormModal} onClose={() => setShowFormModal(false)} onSubmit={onSubmit} uploading={uploading} />
-      
       <header className="md:hidden sticky top-0 bg-white/80 backdrop-blur-sm z-30">
         <div className="p-4 flex items-center gap-3 border-b border-slate-200">
             <button onClick={() => navigate('/dashboard')} className="p-2 rounded-full bg-slate-100 text-indigo-600" aria-label="Go back"><FaArrowLeft className="h-5 w-5" /></button>
@@ -254,7 +237,6 @@ const Wardrobe = () => {
             ))}
         </div>
       </header>
-      
       <div className="hidden md:flex justify-between items-center p-6 border-b border-slate-200">
         <div className="flex items-center gap-3">
             <button onClick={() => navigate('/dashboard')} className="p-2 rounded-full bg-slate-100 text-indigo-600 hover:bg-indigo-100"><FaArrowLeft size={18} /></button>
@@ -264,7 +246,6 @@ const Wardrobe = () => {
             <FaPlus size={14} /> Add Item
         </button>
       </div>
-      
       <main className="flex-1 overflow-y-auto p-4 md:p-6">
         {loading ? (
             <div className="text-center py-10 text-slate-500">
@@ -284,7 +265,6 @@ const Wardrobe = () => {
                   <WardrobeItemCard 
                     key={item.id} 
                     item={item} 
-                    onDelete={() => handleDelete()} 
                     onDeleteRequest={handleDeleteRequest}
                   />
                 ))}
@@ -292,14 +272,11 @@ const Wardrobe = () => {
             </motion.div>
         )}
       </main>
-
       <div className="md:hidden fixed bottom-20 right-4 z-40">
         <button onClick={() => setShowFormModal(true)} className="w-14 h-14 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform">
           <FaPlus size={20} />
         </button>
       </div>
-      
-      {/* Custom confirm dialog */}
       <ConfirmDialog 
         isOpen={confirmDialog.isOpen}
         onClose={() => setConfirmDialog({...confirmDialog, isOpen: false})}

@@ -40,7 +40,6 @@ const History = () => {
         setFavoriteOutfits(favorites);
         setWardrobeItems(wardrobe);
     } catch (error) {
-        console.error('Failed to fetch outfits:', error);
         // Optionally show a toast or set an error state
     } finally {
         setLoading(false);

@@ -46,7 +46,6 @@ module.exports = async function (context, req) {
       body: { message: 'Blob deleted successfully.' }
     };
   } catch (error) {
-    context.log.error('Error in deleteBlob:', error);
     context.res = {
       status: 500,
       headers: corsHeaders,
