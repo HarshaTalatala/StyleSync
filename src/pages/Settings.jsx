@@ -4,24 +4,35 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { db, auth } from '../services/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { updateProfile } from 'firebase/auth';
+import { getAuth, updateProfile as firebaseUpdateProfile } from 'firebase/auth';
 import toast from 'react-hot-toast';
 import ConfirmDialog from '../components/ConfirmDialog';
 
 const Settings = () => {
-  const { currentUser, logout, updatePassword } = useAuth();
-  const navigate = useNavigate();
-  // We need a way to refresh the user data after profile update
-  const refreshUser = () => {
-    // Get current user from auth which should have updated data
-    const user = auth.currentUser;
-    if (user) {
-      // Force a refresh of the auth state
-      user.reload().then(() => {
-        // The onAuthStateChanged handler in AuthContext will pick up the change
-      }).catch(error => {
-        console.error("Failed to refresh user data:", error);
-      });
+  const { currentUser, logout, updatePassword, updateUserProfile: authUpdateProfile } = useAuth();
+  const navigate = useNavigate();// We need a way to refresh the user data after profile update
+  const refreshUser = async () => {
+    try {
+      // Get current user from auth
+      const user = auth.currentUser;
+      if (user) {
+        // Force a refresh of the user data
+        await user.reload();
+        
+        // This will trigger a re-render with updated user data
+        // Create a temporary copy of the user to force state update
+        const updatedUser = {...user};
+        
+        // Log successful refresh
+        console.log("User data refreshed successfully", updatedUser);
+        
+        // Force a page reload to ensure all components get the updated user
+        // This is a fallback approach that ensures all UI elements are updated
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error("Failed to refresh user data:", error);
+      toast.error("Changes saved but display may not update immediately");
     }
   };
   
@@ -77,8 +88,7 @@ const Settings = () => {
       });
       fetchUserSettings();
     }
-  }, [currentUser, fetchUserSettings]);
-  const updateUserProfile = async (e) => {
+  }, [currentUser, fetchUserSettings]);  const updateUserProfile = async (e) => {
     e.preventDefault();
     
     // Basic validation
@@ -92,21 +102,33 @@ const Settings = () => {
       if (!currentUser) {
         throw new Error("You must be logged in to update your profile");
       }
+        console.log("Current auth user before update:", auth.currentUser);
+      console.log("Going to update display name to:", profile.displayName.trim());
       
-      // Update Firebase Auth profile
-      await updateProfile(auth.currentUser, {
+      // Use the authContext's updateUserProfile function
+      await authUpdateProfile({
         displayName: profile.displayName.trim(),
-        photoURL: profile.photoURL
+        photoURL: profile.photoURL || ''
       });
+      
+      console.log("Firebase Auth profile updated successfully");
       
       // Also store in Firestore for additional data
       const userProfileRef = doc(db, 'userProfiles', currentUser.uid);
       await setDoc(userProfileRef, {
         displayName: profile.displayName.trim(),
-        photoURL: profile.photoURL,
-        updatedAt: new Date()
-      }, { merge: true });      // Refresh the user data to pick up the changes
-      refreshUser();
+        photoURL: profile.photoURL || '',
+        updatedAt: new Date(),
+        email: currentUser.email
+      }, { merge: true });
+      
+      console.log("Firestore profile updated successfully");
+      
+      // Show success message immediately
+      toast.success('Profile updated successfully!');
+      
+      // Then refresh the user data to pick up the changes
+      await refreshUser();
       
       setMessage({ text: 'Profile updated successfully', type: 'success' });
       toast.success('Profile updated successfully!');
