@@ -2,13 +2,23 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import { FaTshirt } from 'react-icons/fa';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import ConfirmDialog from './ConfirmDialog';
 
 const Navbar = () => {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const navbarRef = useRef(null);
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false
+  });
+
+  const handleLogoutRequest = () => {
+    setConfirmDialog({
+      isOpen: true
+    });
+  };
 
   const handleLogout = async () => {
     try {
@@ -88,9 +98,8 @@ const Navbar = () => {
                   <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center">
                     <span className="text-indigo-700 font-medium text-sm capitalize">{userDisplayName.charAt(0)}</span>
                   </div>
-                </span>
-                <button
-                  onClick={handleLogout}
+                </span>                <button
+                  onClick={handleLogoutRequest}
                   className="px-5 py-2.5 text-sm border border-slate-200 rounded-md text-slate-700 hover:bg-slate-100 hover:border-slate-300 hover:shadow-sm transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                 >
                   Logout
@@ -110,10 +119,18 @@ const Navbar = () => {
                   Sign Up
                 </Link>
               </div>
-            </>
-          )}
+            </>          )}
         </div>
       </div>
+
+      {/* Confirm Dialog for Logout */}
+      <ConfirmDialog 
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({...confirmDialog, isOpen: false})}
+        onConfirm={handleLogout}
+        title="Sign Out"
+        message="Are you sure you want to sign out of your account?"
+      />
     </nav>
   );
 };

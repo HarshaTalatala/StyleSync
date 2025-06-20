@@ -6,6 +6,7 @@ import { db, auth } from '../services/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
 import toast from 'react-hot-toast';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const Settings = () => {
   const { currentUser, logout, updatePassword } = useAuth();
@@ -28,10 +29,12 @@ const Settings = () => {
     newPassword: '',
     confirmPassword: ''
   });
-  
-  const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
   const [activeTab, setActiveTab] = useState('profile');
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false
+  });
 
   const fetchUserSettings = useCallback(async () => {
     if (!currentUser) return;
@@ -114,10 +117,20 @@ const Settings = () => {
       setLoading(false);
     }
   };
+  const handleLogoutRequest = () => {
+    setConfirmDialog({
+      isOpen: true
+    });
+  };
 
   const handleLogout = async () => {
-    await logout();
-    navigate('/login');
+    try {
+      await logout();
+      toast.success('Logged out successfully!');
+      navigate('/login');
+    } catch (error) {
+      toast.error(`Logout failed: ${error.message}`);
+    }
   };
 
   return (
@@ -290,11 +303,10 @@ const Settings = () => {
                   </div>
                 </form>
               </div>
-              
-              <div className="pt-4 border-t border-slate-200">
+                <div className="pt-4 border-t border-slate-200">
                 <h3 className="font-medium text-slate-700 mb-4">Account Actions</h3>
                 <button
-                  onClick={handleLogout}
+                  onClick={handleLogoutRequest}
                   className="flex items-center space-x-2 py-3 px-6 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 shadow-sm transition-colors"
                 >
                   <FaSignOutAlt className="text-red-500" /> <span>Sign Out</span>
@@ -302,6 +314,15 @@ const Settings = () => {
               </div>
             </div>
           )}
+          
+          {/* Confirm Dialog for Logout */}
+          <ConfirmDialog 
+            isOpen={confirmDialog.isOpen}
+            onClose={() => setConfirmDialog({...confirmDialog, isOpen: false})}
+            onConfirm={handleLogout}
+            title="Sign Out"
+            message="Are you sure you want to sign out of your account?"
+          />
           
           {activeTab === 'preferences' && (
             <div className="space-y-6 max-w-3xl">

@@ -6,15 +6,19 @@ import OutfitCard from '../components/OutfitCard';
 import { useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaClone, FaStar } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const History = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
-  const [allOutfits, setAllOutfits] = useState([]);
-  const [favoriteOutfits, setFavoriteOutfits] = useState([]);
+  const [allOutfits, setAllOutfits] = useState([]);  const [favoriteOutfits, setFavoriteOutfits] = useState([]);
   const [wardrobeItems, setWardrobeItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    outfitId: null
+  });
 
   const tabs = [
     { id: 'all', label: 'All Outfits' },
@@ -64,13 +68,18 @@ const History = () => {
     if (success) {
       await fetchOutfits();
     }
+  };  const handleDeleteRequest = (outfitId) => {
+    setConfirmDialog({
+      isOpen: true,
+      outfitId: outfitId
+    });
   };
-
-  const handleDeleteOutfit = async (outfitDateId) => {
-    if (!currentUser) return;
-    const success = await deletePlannedOutfit(currentUser.uid, outfitDateId);
+  
+  const handleDeleteOutfit = async () => {
+    if (!currentUser || !confirmDialog.outfitId) return;
+    const success = await deletePlannedOutfit(currentUser.uid, confirmDialog.outfitId);
     if (success) {
-      setAllOutfits(prev => prev.filter(o => o.id !== outfitDateId));
+      setAllOutfits(prev => prev.filter(o => o.id !== confirmDialog.outfitId));
     }
   };
 
@@ -136,20 +145,27 @@ const History = () => {
         ) : (
           <motion.div layout className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             <AnimatePresence>
-              {outfitsToDisplay.map((outfit) => (
-                <OutfitCard
+              {outfitsToDisplay.map((outfit) => (                <OutfitCard
                   key={outfit.id}
                   outfit={outfit}
                   wardrobeItems={wardrobeItems}
                   onToggleFavorite={() => handleToggleFavorite(outfit)}
                   isFavorite={isOutfitFavorite(outfit)}
-                  onDeleteOutfit={activeTab === 'all' ? () => handleDeleteOutfit(outfit.id) : undefined}
+                  onDeleteOutfit={activeTab === 'all' ? handleDeleteRequest : undefined}
                 />
               ))}
             </AnimatePresence>
           </motion.div>
-        )}
-      </main>
+        )}      </main>
+      
+      {/* Confirm Dialog for Outfit Deletion */}
+      <ConfirmDialog 
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({...confirmDialog, isOpen: false})}
+        onConfirm={handleDeleteOutfit}
+        title="Delete Outfit"
+        message="Are you sure you want to delete this outfit? This action cannot be undone."
+      />
     </div>
   );
 };

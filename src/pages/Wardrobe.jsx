@@ -6,21 +6,20 @@ import toast from 'react-hot-toast';
 import { FaPlus, FaTshirt, FaTrash, FaArrowLeft, FaTimes, FaEllipsisV } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const categories = ['Top', 'Bottom', 'Shoes', 'Accessory'];
 const commonTags = ['Casual', 'Formal', 'Sporty', 'Summer', 'Winter', 'Spring', 'Autumn'];
 const colors = ['Red', 'Blue', 'Green', 'Yellow', 'Black', 'White', 'Gray', 'Brown', 'Purple', 'Pink'];
 
-const WardrobeItemCard = ({ item, onDelete }) => {
+const WardrobeItemCard = ({ item, onDelete, onDeleteRequest }) => {
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // This internal handler now just calls the onDelete prop passed from the parent.
+  // This internal handler now calls the onDeleteRequest prop to show the confirm dialog
   const handleDeleteClick = (e) => {
     e.stopPropagation(); // Prevent card click events
     setMenuOpen(false);
-    if (window.confirm("Are you sure you want to delete this item?")) {
-        onDelete();
-    }
+    onDeleteRequest(item);
   };
 
   return (
@@ -178,6 +177,10 @@ const Wardrobe = () => {
   const [uploading, setUploading] = useState(false);
   const [showFormModal, setShowFormModal] = useState(false);
   const [activeFilter, setActiveFilter] = useState('All');
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    item: null
+  });
 
   const fetchWardrobe = useCallback(async () => {
     if (!currentUser) return;
@@ -201,13 +204,24 @@ const Wardrobe = () => {
     }
     setUploading(false);
   };
+  /**
+   * Show the confirmation dialog before deletion
+   */
+  const handleDeleteRequest = (item) => {
+    setConfirmDialog({
+      isOpen: true,
+      item: item
+    });
+  };
 
   /**
    * UPDATED: Handles item deletion.
    * It now accepts the entire item object to access `item.id` and `item.imagePath`.
    */
-  const handleDelete = async (item) => {
-    if (!currentUser) return;
+  const handleDelete = async () => {
+    const item = confirmDialog.item;
+    if (!currentUser || !item) return;
+    
     // Pass the item's ID and its stored imagePath to the service function
     const success = await deleteWardrobeItem(currentUser.uid, item.id, item.imagePath);
     if (success) {
@@ -264,11 +278,16 @@ const Wardrobe = () => {
                 {activeFilter === 'All' ? 'Your wardrobe is empty. Add your first item!' : `You have no items in the "${activeFilter}" category.`}
               </p>
             </div>
-        ) : (
-            <motion.div layout className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        ) : (            <motion.div layout className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               <AnimatePresence>
-                {/* UPDATED: The onDelete prop now passes a function that calls handleDelete with the specific item */}
-                {filteredWardrobe.map(item => <WardrobeItemCard key={item.id} item={item} onDelete={() => handleDelete(item)} />)}
+                {filteredWardrobe.map(item => (
+                  <WardrobeItemCard 
+                    key={item.id} 
+                    item={item} 
+                    onDelete={() => handleDelete()} 
+                    onDeleteRequest={handleDeleteRequest}
+                  />
+                ))}
               </AnimatePresence>
             </motion.div>
         )}
@@ -279,6 +298,15 @@ const Wardrobe = () => {
           <FaPlus size={20} />
         </button>
       </div>
+      
+      {/* Custom confirm dialog */}
+      <ConfirmDialog 
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({...confirmDialog, isOpen: false})}
+        onConfirm={handleDelete}
+        title="Delete Item"
+        message="Are you sure you want to delete this item? This action cannot be undone."
+      />
     </div>
   );
 };
