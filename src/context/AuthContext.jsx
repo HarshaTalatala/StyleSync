@@ -45,8 +45,7 @@ export function AuthProvider({ children }) {
     
     await reauthenticateWithCredential(auth.currentUser, credential);
     return firebaseUpdatePassword(auth.currentUser, newPassword);
-  }
-    async function updateUserProfile(profileData) {
+  }  async function updateUserProfile(profileData) {
     if (!auth.currentUser) {
       throw new Error('No user is currently logged in');
     }
@@ -67,7 +66,7 @@ export function AuthProvider({ children }) {
     setCurrentUser(updatedUser);
     
     return updatedUser;
-  }  
+  }
   async function refreshUser() {
     if (!auth.currentUser) {
       throw new Error('No user is currently logged in');
@@ -88,43 +87,26 @@ export function AuthProvider({ children }) {
       throw error;
     }
   }
-
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, user => {
       console.log("Auth state changed, new user:", user);
       if (user) {
-        // Create a fresh object to ensure React detects the change
-        const freshUser = {...user};
-        setCurrentUser(freshUser);
+        // Create a fresh object to ensure React detects the change, but don't update if not needed
+        if (!currentUser || 
+            user.uid !== currentUser.uid ||  
+            user.email !== currentUser.email) {
+          const freshUser = {...user};
+          setCurrentUser(freshUser);
+        }
       } else {
         setCurrentUser(null);
       }
       setLoading(false);
     });
-      // We'll check more frequently for user updates when the user is logged in
-    // This helps ensure the UI stays in sync with Firebase Auth
-    const refreshInterval = setInterval(() => {
-      if (auth.currentUser) {
-        auth.currentUser.reload()
-          .then(() => {
-            // First check if there are actual changes before updating state
-            if (!currentUser || 
-                currentUser.displayName !== auth.currentUser.displayName ||
-                currentUser.photoURL !== auth.currentUser.photoURL ||
-                currentUser.email !== auth.currentUser.email) {
-              // Create a fresh object (with a new reference) to ensure React detects the change
-              console.log("Detected user changes, updating state. New display name:", auth.currentUser.displayName);
-              const freshUserData = {...auth.currentUser};
-              setCurrentUser(freshUserData);
-            }
-          })
-          .catch(err => console.error("Error refreshing user data:", err));
-      }
-    }, 2000); // Check every 2 seconds to be more responsive
-    
-    return () => {
+    // We've removed the automatic interval refresh that was causing UI glitches
+      return () => {
       unsubscribe();
-      clearInterval(refreshInterval);
+      // No interval to clear anymore
     };
   }, []);
   const value = {

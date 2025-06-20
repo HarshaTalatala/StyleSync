@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { FaCog, FaUserCircle, FaSignOutAlt, FaLock, FaBell, FaPalette, FaArrowLeft, FaInfoCircle } from 'react-icons/fa'; 
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -34,6 +34,7 @@ const Settings = () => {  const { currentUser, logout, updatePassword, updateUse
   const [confirmDialog, setConfirmDialog] = useState({
     isOpen: false
   });
+  const [userDisplayName, setUserDisplayName] = useState('');
 
   const fetchUserSettings = useCallback(async () => {
     if (!currentUser) return;
@@ -53,21 +54,25 @@ const Settings = () => {  const { currentUser, logout, updatePassword, updateUse
       setMessage({ text: 'Failed to load settings', type: 'error' });
       toast.error('Failed to load settings');
     }
-  }, [currentUser, settings]);
-  useEffect(() => {
+  }, [currentUser, settings]);  useEffect(() => {
     if (currentUser) {
-      console.log("Setting profile from current user:", currentUser);
+      console.log("Setting up profile from current user:", currentUser);
+      const displayName = currentUser.displayName || currentUser.email.split('@')[0];
+      
+      // Set both profile and userDisplayName states
       setProfile({
-        displayName: currentUser.displayName || currentUser.email.split('@')[0],
+        displayName: displayName,
         photoURL: currentUser.photoURL || ''
       });
+      setUserDisplayName(displayName);
+      
+      // Fetch settings
       fetchUserSettings();
     }
   }, [currentUser, fetchUserSettings]);const updateUserProfile = async (e) => {
     e.preventDefault();
-    
-    // Basic validation
-    if (!profile.displayName || profile.displayName.trim() === '') {
+      // Basic validation
+    if (!userDisplayName || userDisplayName.trim() === '') {
       toast.error("Display name cannot be empty");
       return;
     }
@@ -78,20 +83,11 @@ const Settings = () => {  const { currentUser, logout, updatePassword, updateUse
         throw new Error("You must be logged in to update your profile");
       }
       
-      // Get the new display name, trimmed for consistency
-      const newDisplayName = profile.displayName.trim();
-      console.log("Current auth user before update:", auth.currentUser);
-      console.log("Going to update display name to:", newDisplayName);
+      // Use our separate state for display name
+      const newDisplayName = userDisplayName.trim();
+      console.log("Updating display name to:", newDisplayName);
       
-      // First, update the Firebase Auth profile
-      await authUpdateProfile({
-        displayName: newDisplayName,
-        photoURL: profile.photoURL || ''
-      });
-      
-      console.log("Firebase Auth profile updated successfully");
-      
-      // Then store in Firestore for additional data and consistency
+      // First, store in Firestore for additional data and consistency
       const userProfileRef = doc(db, 'userProfiles', currentUser.uid);
       await setDoc(userProfileRef, {
         displayName: newDisplayName,
@@ -102,8 +98,19 @@ const Settings = () => {  const { currentUser, logout, updatePassword, updateUse
       
       console.log("Firestore profile updated successfully");
       
-      // Now refresh the user data from Firebase to update our local state
-      await refreshUser();
+      // Update Firebase Auth profile
+      await authUpdateProfile({
+        displayName: newDisplayName,
+        photoURL: profile.photoURL || ''
+      });
+      
+      console.log("Firebase Auth profile updated successfully");
+        // Ensure our local state is consistent with what we just saved
+      setUserDisplayName(newDisplayName);
+      setProfile(prev => ({
+        ...prev,
+        displayName: newDisplayName
+      }));
       
       // Show success message
       setMessage({ text: 'Profile updated successfully', type: 'success' });
@@ -254,11 +261,13 @@ const Settings = () => {  const { currentUser, logout, updatePassword, updateUse
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">
                       Display Name
-                    </label>
-                    <input
+                    </label>                    <input
                       type="text"
-                      value={profile.displayName}
-                      onChange={(e) => setProfile({...profile, displayName: e.target.value})}
+                      value={userDisplayName}
+                      onChange={(e) => {
+                        setUserDisplayName(e.target.value); 
+                        setProfile({...profile, displayName: e.target.value});
+                      }}
                       className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent shadow-sm"
                       placeholder="Your display name"
                     />
