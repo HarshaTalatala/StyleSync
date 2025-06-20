@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaClone, FaStar } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import ConfirmDialog from '../components/ConfirmDialog';
+import toast from 'react-hot-toast';
 
 const History = () => {
   const { currentUser } = useAuth();
@@ -67,6 +68,7 @@ const History = () => {
     const success = await action(currentUser.uid, outfit);
     if (success) {
       await fetchOutfits();
+      toast.success(isFavorite ? 'Removed from favorites!' : 'Added to favorites!');
     }
   };  const handleDeleteRequest = (outfitId) => {
     setConfirmDialog({
@@ -77,9 +79,17 @@ const History = () => {
   
   const handleDeleteOutfit = async () => {
     if (!currentUser || !confirmDialog.outfitId) return;
+    // Find the outfit data by id
+    const outfit = allOutfits.find(o => o.id === confirmDialog.outfitId);
     const success = await deletePlannedOutfit(currentUser.uid, confirmDialog.outfitId);
     if (success) {
       setAllOutfits(prev => prev.filter(o => o.id !== confirmDialog.outfitId));
+      // Also remove from favorites if it exists
+      if (outfit) {
+        await removeFavoriteOutfit(currentUser.uid, outfit);
+        await fetchOutfits();
+      }
+      toast.success('Outfit deleted!');
     }
   };
 

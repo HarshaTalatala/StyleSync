@@ -1,26 +1,12 @@
 import dayjs from 'dayjs';
 import { useState } from 'react';
 import { FaHeart, FaRegHeart, FaTrash } from 'react-icons/fa';
-import ConfirmDialog from './ConfirmDialog';
 
 const OutfitCard = ({ outfit, wardrobeItems, onToggleFavorite, onDeleteOutfit, isFavorite }) => {
-  const [confirmDialog, setConfirmDialog] = useState({
-    isOpen: false
-  });
-
   const getItemDetails = (itemId) => {
     return wardrobeItems.find(item => item.id === itemId);
   };
   
-  const handleDeleteRequest = () => {
-    setConfirmDialog({ isOpen: true });
-  };
-  const handleDelete = () => {
-    if (onDeleteOutfit) {
-      onDeleteOutfit(outfit.id);
-    }
-  };
-
   const outfitDetails = {
     top: getItemDetails(outfit.topId),
     bottom: getItemDetails(outfit.bottomId),
@@ -77,7 +63,7 @@ const OutfitCard = ({ outfit, wardrobeItems, onToggleFavorite, onDeleteOutfit, i
           </button>
         )}        {onDeleteOutfit && (
           <button
-            onClick={handleDeleteRequest}
+            onClick={() => onDeleteOutfit(outfit.id)}
             className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
             title="Delete outfit"
           >
@@ -85,15 +71,6 @@ const OutfitCard = ({ outfit, wardrobeItems, onToggleFavorite, onDeleteOutfit, i
           </button>
         )}
       </div>
-
-      {/* Custom confirm dialog */}
-      <ConfirmDialog 
-        isOpen={confirmDialog.isOpen}
-        onClose={() => setConfirmDialog({...confirmDialog, isOpen: false})}
-        onConfirm={handleDelete}
-        title="Delete Outfit"
-        message="Are you sure you want to delete this outfit? This action cannot be undone."
-      />
     </div>
   );
 };

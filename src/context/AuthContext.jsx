@@ -103,10 +103,14 @@ export function AuthProvider({ children }) {
       }
       setLoading(false);
     });
-    // We've removed the automatic interval refresh that was causing UI glitches
-      return () => {
+    // Log out on tab/window close
+    const handleUnload = () => {
+      logout();
+    };
+    window.addEventListener('unload', handleUnload);
+    return () => {
       unsubscribe();
-      // No interval to clear anymore
+      window.removeEventListener('unload', handleUnload);
     };
   }, []);
   const value = {
