@@ -147,3 +147,39 @@ export const deleteWardrobeItem = async (uid, itemId, imagePath) => {
     return false;
   }
 };
+
+const getSasUrl = async (blobName) => {
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error('User not authenticated.');
+  }
+  const token = await user.getIdToken(true);
+
+  // For debugging: decode and log token header
+  try {
+    const tokenParts = token.split('.');
+    if (tokenParts.length === 3) {
+      const header = JSON.parse(atob(tokenParts[0]));
+      console.log("Token header:", header);
+      console.log("Has 'kid' claim:", !!header.kid);
+    }
+  } catch (e) {
+    console.log("Could not decode token header:", e);
+  }
+
+  const response = await fetch(`${BACKEND_API_URL}/generateSas`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({ blobName }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`Failed to get SAS URL: ${response.statusText} - ${errorBody}`);
+  }
+
+  return response.json();
+};
