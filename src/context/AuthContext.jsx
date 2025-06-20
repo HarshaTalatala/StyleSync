@@ -46,11 +46,12 @@ export function AuthProvider({ children }) {
     await reauthenticateWithCredential(auth.currentUser, credential);
     return firebaseUpdatePassword(auth.currentUser, newPassword);
   }
-  
-  async function updateUserProfile(profileData) {
+    async function updateUserProfile(profileData) {
     if (!auth.currentUser) {
       throw new Error('No user is currently logged in');
     }
+    
+    console.log("Updating profile to:", profileData);
     
     // Update the user profile in Firebase Auth
     await firebaseUpdateProfile(auth.currentUser, profileData);
@@ -58,41 +59,74 @@ export function AuthProvider({ children }) {
     // Force a refresh to get the updated user data
     await auth.currentUser.reload();
     
-    // Update the currentUser state with the new data
-    setCurrentUser({...auth.currentUser});
+    // Create a new object with current properties and the updated properties
+    const updatedUser = {...auth.currentUser};
+    console.log("Firebase user after update:", updatedUser);
     
-    return auth.currentUser;
+    // Update the currentUser state with the new data
+    setCurrentUser(updatedUser);
+    
+    return updatedUser;
+  }  
+  async function refreshUser() {
+    if (!auth.currentUser) {
+      throw new Error('No user is currently logged in');
+    }
+    
+    try {
+      // Force a refresh of user data from Firebase
+      await auth.currentUser.reload();
+      
+      // Update our local state with fresh data
+      const freshUser = {...auth.currentUser};
+      console.log("Refreshed user data:", freshUser);
+      setCurrentUser(freshUser);
+      
+      return freshUser;
+    } catch (error) {
+      console.error("Failed to refresh user data:", error);
+      throw error;
+    }
   }
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, user => {
       console.log("Auth state changed, new user:", user);
-      setCurrentUser(user);
+      if (user) {
+        // Create a fresh object to ensure React detects the change
+        const freshUser = {...user};
+        setCurrentUser(freshUser);
+      } else {
+        setCurrentUser(null);
+      }
       setLoading(false);
     });
-    
-    // We'll also check periodically for user updates when the user is logged in
+      // We'll check more frequently for user updates when the user is logged in
     // This helps ensure the UI stays in sync with Firebase Auth
     const refreshInterval = setInterval(() => {
       if (auth.currentUser) {
         auth.currentUser.reload()
           .then(() => {
-            // Only update state if there are actually changes
-            if (currentUser && 
-                (currentUser.displayName !== auth.currentUser.displayName ||
-                 currentUser.photoURL !== auth.currentUser.photoURL)) {
-              console.log("Detected user profile changes, updating state");
-              setCurrentUser({...auth.currentUser});
+            // First check if there are actual changes before updating state
+            if (!currentUser || 
+                currentUser.displayName !== auth.currentUser.displayName ||
+                currentUser.photoURL !== auth.currentUser.photoURL ||
+                currentUser.email !== auth.currentUser.email) {
+              // Create a fresh object (with a new reference) to ensure React detects the change
+              console.log("Detected user changes, updating state. New display name:", auth.currentUser.displayName);
+              const freshUserData = {...auth.currentUser};
+              setCurrentUser(freshUserData);
             }
           })
           .catch(err => console.error("Error refreshing user data:", err));
       }
-    }, 10000); // Check every 10 seconds
+    }, 2000); // Check every 2 seconds to be more responsive
     
     return () => {
       unsubscribe();
       clearInterval(refreshInterval);
     };
-  }, [currentUser]);
+  }, []);
   const value = {
     currentUser,
     loading,
@@ -100,7 +134,8 @@ export function AuthProvider({ children }) {
     login,
     logout,
     updatePassword,
-    updateUserProfile
+    updateUserProfile,
+    refreshUser
   };
 
   return (
