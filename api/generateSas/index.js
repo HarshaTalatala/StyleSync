@@ -1,41 +1,5 @@
 const { BlobServiceClient, generateBlobSASQueryParameters, BlobSASPermissions, SASProtocol, StorageSharedKeyCredential } = require('@azure/storage-blob');
-const admin = require('firebase-admin');
-
-// Initialize Firebase Admin SDK if not already initialized
-if (!admin.apps.length) {
-  try {
-    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
-    });
-  } catch(e) {
-    console.error('Firebase Admin SDK initialization error:', e);
-  }
-}
-
-const authenticateToken = async (context, req) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    context.res = {
-      status: 401,
-      body: 'No token provided.'
-    };
-    return false;
-  }
-  const idToken = authHeader.split('Bearer ')[1];
-  try {
-    const decodedToken = await admin.auth().verifyIdToken(idToken);
-    req.user = decodedToken;
-    return true;
-  } catch (error) {
-    context.log.error("Token verification failed:", error); // Detailed logging
-    context.res = {
-      status: 403,
-      body: `Authentication error: ${error.message}` // More descriptive error
-    };
-    return false;
-  }
-};
+const { authenticateToken } = require('../shared/firebaseUtil');
 
 module.exports = async function (context, req) {
   // Always set CORS headers
@@ -46,16 +10,22 @@ module.exports = async function (context, req) {
     'Access-Control-Allow-Headers': 'Content-Type, Authorization'
   };
   context.res = { headers: corsHeaders };
+
   try {
     if (req.method === 'OPTIONS') {
       context.res.status = 204;
       context.res.body = '';
       return;
     }
-    if (!(await authenticateToken(context, req))) {
-      context.res.headers = corsHeaders;
+
+    const decodedToken = await authenticateToken(context, req);
+    if (!decodedToken) {
+      // authenticateToken sets the response in context.res on failure
+      context.res.headers = { ...context.res.headers, ...corsHeaders };
       return;
     }
+    req.user = decodedToken;
+
     const { blobName } = req.body;
     if (!blobName) {
       context.res = {
