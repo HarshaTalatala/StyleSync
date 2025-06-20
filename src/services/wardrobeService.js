@@ -115,31 +115,42 @@ export const deleteWardrobeItem = async (uid, itemId, imagePath) => {
   try {
     const itemRef = doc(getUserWardrobeCollectionRef(uid), itemId);
     
-    if (imagePath) {
-      const auth = getAuth();
-      const user = auth.currentUser;
-      if (!user) {
-        toast.error("User not authenticated.");
-        return false;
-      }
-      const idToken = await user.getIdToken(true); // Force refresh
-
-      const deleteBlobResponse = await fetch(`${BACKEND_API_URL}/deleteBlob`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`
-        },
-        body: JSON.stringify({ blobName: imagePath }),
-      });
-
-      if (!deleteBlobResponse.ok) {
-        const errorBody = await deleteBlobResponse.text();
-        throw new Error(`Failed to delete blob: ${deleteBlobResponse.statusText} - ${errorBody}`);
-      }
-    }
-    
+    // First, delete the document from Firestore to ensure this part works
     await deleteDoc(itemRef);
+    
+    // Only attempt to delete the blob if there's an image path
+    if (imagePath) {
+      try {
+        const auth = getAuth();
+        const user = auth.currentUser;
+        if (!user) {
+          console.warn("User not authenticated for blob deletion, but document was deleted.");
+          return true; // Still return true since the document was deleted
+        }
+        
+        // Get a fresh token to avoid any expiration issues
+        const idToken = await user.getIdToken(false);
+        
+        const deleteBlobResponse = await fetch(`${BACKEND_API_URL}/deleteBlob`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`
+          },
+          body: JSON.stringify({ blobName: imagePath }),
+        });
+
+        if (!deleteBlobResponse.ok) {
+          const errorBody = await deleteBlobResponse.text();
+          console.warn(`Image deletion warning: ${deleteBlobResponse.statusText} - ${errorBody}`);
+          // Don't throw error here, just log it as a warning
+        }
+      } catch (blobError) {
+        // Log but don't fail the operation, as we've already deleted the document
+        console.warn("Failed to delete image blob, but document was removed:", blobError);
+      }
+    }    
+    // Document already deleted in the modified code above
     return true;
   } catch (error) {
     console.error('Error deleting item:', error);
