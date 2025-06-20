@@ -1,10 +1,6 @@
 const admin = require('firebase-admin');
 
-function initializeFirebase() {
-  if (admin.apps.length > 0) {
-    console.log("Firebase Admin SDK already initialized.");
-    return true;
-  }
+if (admin.apps.length === 0) {
   try {
     if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
       const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
@@ -12,21 +8,16 @@ function initializeFirebase() {
         credential: admin.credential.cert(serviceAccount)
       });
       console.log("Firebase Admin SDK successfully initialized.");
-      return true;
     } else {
-      console.error("FIREBASE_SERVICE_ACCOUNT_JSON environment variable is not set.");
-      return false;
+      throw new Error("FIREBASE_SERVICE_ACCOUNT_JSON environment variable is not set.");
     }
   } catch (e) {
-    console.error('CRITICAL: Firebase Admin SDK initialization error. The API will not work correctly. Please check your FIREBASE_SERVICE_ACCOUNT_JSON environment variable.', e);
-    return false;
+    console.error('CRITICAL: Firebase Admin SDK initialization error.', e);
   }
 }
 
-const firebaseInitialized = initializeFirebase();
-
 const authenticateToken = async (context, req) => {
-  if (!firebaseInitialized) {
+  if (admin.apps.length === 0) {
     context.res = {
       status: 500,
       body: 'Internal Server Error: Firebase Admin SDK not initialized. Check server logs for details.'
@@ -57,4 +48,4 @@ const authenticateToken = async (context, req) => {
   }
 };
 
-module.exports = { authenticateToken, firebaseInitialized };
+module.exports = { authenticateToken };
