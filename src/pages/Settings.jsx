@@ -56,20 +56,22 @@ const Settings = () => {  const { currentUser, logout, updatePassword, updateUse
     }
   }, [currentUser, settings]);  useEffect(() => {
     if (currentUser) {
-      console.log("Setting up profile from current user:", currentUser);
-      const displayName = currentUser.displayName || currentUser.email.split('@')[0];
-      
-      // Set both profile and userDisplayName states
-      setProfile({
-        displayName: displayName,
-        photoURL: currentUser.photoURL || ''
-      });
-      setUserDisplayName(displayName);
-      
+      // Only set if not already set (prevents overwriting user input)
+      if (!userDisplayName) {
+        console.log("Setting up profile from current user:", currentUser);
+        const displayName = currentUser.displayName || currentUser.email.split('@')[0];
+        setProfile({
+          displayName: displayName,
+          photoURL: currentUser.photoURL || ''
+        });
+        setUserDisplayName(displayName);
+      }
       // Fetch settings
       fetchUserSettings();
     }
-  }, [currentUser, fetchUserSettings]);const updateUserProfile = async (e) => {
+  }, [currentUser, fetchUserSettings]);
+
+  const updateUserProfile = async (e) => {
     e.preventDefault();
       // Basic validation
     if (!userDisplayName || userDisplayName.trim() === '') {
