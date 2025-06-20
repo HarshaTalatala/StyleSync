@@ -11,6 +11,19 @@ import ConfirmDialog from '../components/ConfirmDialog';
 const Settings = () => {
   const { currentUser, logout, updatePassword } = useAuth();
   const navigate = useNavigate();
+  // We need a way to refresh the user data after profile update
+  const refreshUser = () => {
+    // Get current user from auth which should have updated data
+    const user = auth.currentUser;
+    if (user) {
+      // Force a refresh of the auth state
+      user.reload().then(() => {
+        // The onAuthStateChanged handler in AuthContext will pick up the change
+      }).catch(error => {
+        console.error("Failed to refresh user data:", error);
+      });
+    }
+  };
   
   const [settings, setSettings] = useState({
     theme: 'light',
@@ -65,23 +78,41 @@ const Settings = () => {
       fetchUserSettings();
     }
   }, [currentUser, fetchUserSettings]);
-
   const updateUserProfile = async (e) => {
     e.preventDefault();
+    
+    // Basic validation
+    if (!profile.displayName || profile.displayName.trim() === '') {
+      toast.error("Display name cannot be empty");
+      return;
+    }
+    
     setLoading(true);
     try {
-      if (currentUser) {
-        await updateProfile(auth.currentUser, {
-          displayName: profile.displayName.trim(),
-          photoURL: profile.photoURL
-        });
+      if (!currentUser) {
+        throw new Error("You must be logged in to update your profile");
       }
+      
+      // Update Firebase Auth profile
+      await updateProfile(auth.currentUser, {
+        displayName: profile.displayName.trim(),
+        photoURL: profile.photoURL
+      });
+      
+      // Also store in Firestore for additional data
       const userProfileRef = doc(db, 'userProfiles', currentUser.uid);
-      await setDoc(userProfileRef, profile, { merge: true });
+      await setDoc(userProfileRef, {
+        displayName: profile.displayName.trim(),
+        photoURL: profile.photoURL,
+        updatedAt: new Date()
+      }, { merge: true });      // Refresh the user data to pick up the changes
+      refreshUser();
+      
       setMessage({ text: 'Profile updated successfully', type: 'success' });
       toast.success('Profile updated successfully!');
       setTimeout(() => setMessage({ text: '', type: '' }), 3000);
     } catch (error) {
+      console.error("Profile update error:", error);
       setMessage({ text: `Failed to update profile: ${error.message}`, type: 'error' });
       toast.error(`Failed to update profile: ${error.message}`);
     } finally {
@@ -102,17 +133,44 @@ const Settings = () => {
       fetchUserSettings();
     }
   };
-
   const handlePasswordChange = async (e) => {
     e.preventDefault();
+    
+    // Password validation
+    if (passwords.newPassword !== passwords.confirmPassword) {
+      toast.error("New passwords don't match");
+      return;
+    }
+    
+    if (passwords.newPassword.length < 6) {
+      toast.error("New password must be at least 6 characters");
+      return;
+    }
+    
+    if (!passwords.currentPassword) {
+      toast.error("Current password is required");
+      return;
+    }
+    
     setLoading(true);
     try {
-      await updatePassword(passwords.newPassword);
+      // Use the updated updatePassword function from AuthContext
+      await updatePassword(passwords.currentPassword, passwords.newPassword);
       toast.success('Password updated successfully!');
       setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (error) {
+      console.error("Password update error:", error);
+      
+      // Provide more specific error messages
+      if (error.code === 'auth/wrong-password') {
+        toast.error("Current password is incorrect");
+      } else if (error.code === 'auth/requires-recent-login') {
+        toast.error("For security reasons, please log out and log in again before changing your password");
+      } else {
+        toast.error(`Failed to update password: ${error.message}`);
+      }
+      
       setMessage({ text: `Failed to update password: ${error.message}`, type: 'error' });
-      toast.error(`Failed to update password: ${error.message}`);
     } finally {
       setLoading(false);
     }

@@ -4,7 +4,10 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  updatePassword as firebaseUpdatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider
 } from 'firebase/auth';
 
 const AuthContext = createContext();
@@ -24,10 +27,24 @@ export function AuthProvider({ children }) {
   function login(email, password) {
     return signInWithEmailAndPassword(auth, email, password);
   }
-
   async function logout() {
     await signOut(auth);
     setCurrentUser(null);
+  }
+
+  async function updatePassword(currentPassword, newPassword) {
+    if (!auth.currentUser) {
+      throw new Error('No user is currently logged in');
+    }
+    
+    // Reauthenticate the user before changing password
+    const credential = EmailAuthProvider.credential(
+      auth.currentUser.email,
+      currentPassword
+    );
+    
+    await reauthenticateWithCredential(auth.currentUser, credential);
+    return firebaseUpdatePassword(auth.currentUser, newPassword);
   }
 
   useEffect(() => {
@@ -43,7 +60,8 @@ export function AuthProvider({ children }) {
     loading,
     signup,
     login,
-    logout
+    logout,
+    updatePassword
   };
 
   return (
