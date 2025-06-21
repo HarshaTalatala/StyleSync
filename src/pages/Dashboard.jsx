@@ -111,6 +111,19 @@ const Dashboard = () => {
     fetchData();
   }, [currentUser, lastRefresh]);
 
+  // Handle page visibility changes to refresh data when user returns to tab
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && currentUser) {
+        // Page became visible and user is logged in, refresh the data
+        setLastRefresh(Date.now());
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [currentUser]);
+
   const handleRefresh = () => {
     setIsRefreshing(true);
     setLastRefresh(Date.now());
