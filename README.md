@@ -7,9 +7,6 @@ A modern, intelligent wardrobe management application that helps you organize yo
 [![Firebase](https://img.shields.io/badge/Firebase-11.9.1-orange?style=flat&logo=firebase)](https://firebase.google.com/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1.10-38B2AC?style=flat&logo=tailwind-css)](https://tailwindcss.com/)
 
-## 🚀 Live Demo
-
-**[Coming Soon]** - Demo will be available after deployment
 
 ## 🌟 Features
 
