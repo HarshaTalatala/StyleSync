@@ -1,7 +1,34 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { FaLeaf, FaTshirt, FaCloudSun, FaMagic } from 'react-icons/fa';
+import { useEffect } from 'react';
 
 const LandingPage = () => {
+  const { currentUser, loading } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect logged-in users to dashboard
+  useEffect(() => {
+    if (!loading && currentUser) {
+      console.log('LandingPage: User is logged in, redirecting to dashboard');
+      navigate('/dashboard', { replace: true });
+    }
+  }, [currentUser, loading, navigate]);
+
+  // Show loading while checking auth state
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen text-xl">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500 mx-auto"></div>
+      </div>
+    );
+  }
+
+  // Don't render landing page content if user is logged in
+  if (currentUser) {
+    return null;
+  }
+
   return (
     <div className="flex flex-col bg-white lg:flex-row lg:h-[calc(100vh-73px)] lg:overflow-hidden">
       <div 

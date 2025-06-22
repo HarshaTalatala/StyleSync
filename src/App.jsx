@@ -26,14 +26,32 @@ const PrivateRoute = () => {
   return currentUser ? <Outlet /> : <Navigate to="/login" replace />;
 };
 
+// PublicRoute component - redirects logged-in users away from public pages
+const PublicRoute = ({ children }) => {
+  const { currentUser, loading } = useAuth();
+
+  if (loading) {
+    return <div className="flex justify-center items-center h-screen text-xl">Loading...</div>;
+  }
+
+  return currentUser ? <Navigate to="/dashboard" replace /> : children;
+};
+
 function App() {
+  const { loading } = useAuth();
+
+  // Show loading while auth state is being determined
+  if (loading) {
+    return <div className="flex justify-center items-center h-screen text-xl">Loading...</div>;
+  }
+
   return (
     <>
       <Navbar />
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
+        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
 
         {/* Protected Routes */}
         <Route element={<PrivateRoute />}>

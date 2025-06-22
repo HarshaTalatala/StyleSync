@@ -80,28 +80,32 @@ export function AuthProvider({ children }) {
   }
   
   useEffect(() => {
+    console.log('AuthContext: Initializing authentication state...');
+    
     // Check if there's already a user when the component mounts
     const currentAuthUser = auth.currentUser;
     if (currentAuthUser) {
-      console.log('Found existing user on mount:', currentAuthUser.email);
+      console.log('AuthContext: Found existing user on mount:', currentAuthUser.email);
       setCurrentUser({...currentAuthUser});
+    } else {
+      console.log('AuthContext: No existing user found on mount');
     }
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      console.log('Auth state changed:', user ? 'User logged in' : 'User logged out');
+      console.log('AuthContext: Auth state changed:', user ? `User logged in: ${user.email}` : 'User logged out');
       
       if (user) {
         // Always update the current user when auth state changes
         const freshUser = {...user};
         setCurrentUser(freshUser);
-        console.log('User authenticated:', freshUser.email);
+        console.log('AuthContext: User authenticated:', freshUser.email);
       } else {
         setCurrentUser(null);
-        console.log('User signed out');
+        console.log('AuthContext: User signed out');
       }
       setLoading(false);
     }, (error) => {
-      console.error('Auth state change error:', error);
+      console.error('AuthContext: Auth state change error:', error);
       setCurrentUser(null);
       setLoading(false);
     });
@@ -110,7 +114,7 @@ export function AuthProvider({ children }) {
     const handleVisibilityChange = () => {
       if (!document.hidden) {
         // Page became visible, check and refresh auth state
-        console.log('Page became visible, checking auth state...');
+        console.log('AuthContext: Page became visible, checking auth state...');
         
         // Force a check of the current auth state
         const currentUser = auth.currentUser;
@@ -119,21 +123,21 @@ export function AuthProvider({ children }) {
           currentUser.reload().then(() => {
             const freshUser = {...currentUser};
             setCurrentUser(freshUser);
-            console.log('User refreshed on visibility change:', freshUser.email);
+            console.log('AuthContext: User refreshed on visibility change:', freshUser.email);
           }).catch((error) => {
-            console.error('Error refreshing user on visibility change:', error);
+            console.error('AuthContext: Error refreshing user on visibility change:', error);
             // If refresh fails, the user might have been logged out
             if (error.code === 'auth/user-token-expired' || 
                 error.code === 'auth/user-not-found' || 
                 error.code === 'auth/network-request-failed') {
               setCurrentUser(null);
-              console.log('User logged out due to token expiration or network error');
+              console.log('AuthContext: User logged out due to token expiration or network error');
             }
           });
         } else {
           // No current user, ensure state is cleared
           setCurrentUser(null);
-          console.log('No user found on visibility change');
+          console.log('AuthContext: No user found on visibility change');
         }
       }
     };
@@ -141,7 +145,7 @@ export function AuthProvider({ children }) {
     // Handle storage events (for multi-tab synchronization)
     const handleStorageChange = (e) => {
       if (e.key === 'firebase:authUser:' + auth.config.apiKey + ':[DEFAULT]') {
-        console.log('Auth storage changed, refreshing state...');
+        console.log('AuthContext: Auth storage changed, refreshing state...');
         // Force a re-check of auth state
         const currentUser = auth.currentUser;
         if (currentUser) {
@@ -154,7 +158,7 @@ export function AuthProvider({ children }) {
 
     // Handle beforeunload to ensure clean state
     const handleBeforeUnload = () => {
-      console.log('Page unloading, preserving auth state...');
+      console.log('AuthContext: Page unloading, preserving auth state...');
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -164,9 +168,9 @@ export function AuthProvider({ children }) {
     // Also listen for focus events as a backup
     const handleWindowFocus = () => {
       if (auth.currentUser) {
-        console.log('Window focused, checking auth state...');
+        console.log('AuthContext: Window focused, checking auth state...');
         auth.currentUser.reload().catch((error) => {
-          console.error('Error refreshing user on window focus:', error);
+          console.error('AuthContext: Error refreshing user on window focus:', error);
           if (error.code === 'auth/user-token-expired' || error.code === 'auth/user-not-found') {
             setCurrentUser(null);
           }
@@ -177,6 +181,7 @@ export function AuthProvider({ children }) {
     window.addEventListener('focus', handleWindowFocus);
 
     return () => {
+      console.log('AuthContext: Cleaning up auth listeners...');
       unsubscribe();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('storage', handleStorageChange);
