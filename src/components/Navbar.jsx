@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import ConfirmDialog from './ConfirmDialog';
 
 const Navbar = () => {
-  const { currentUser, logout } = useAuth();
+  const { currentUser, logout, forceRefreshAuth } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const navbarRef = useRef(null);
@@ -26,7 +26,10 @@ const Navbar = () => {
       toast.success('Logged out successfully!');
       navigate('/login');
     } catch (error) {
+      console.error('Logout error in Navbar:', error);
       toast.error(`Logout failed: ${error.message}`);
+      // Try to force refresh auth state as fallback
+      forceRefreshAuth();
     }
   };
 
@@ -46,6 +49,11 @@ const Navbar = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Debug authentication state changes
+  useEffect(() => {
+    console.log('Navbar auth state changed:', currentUser ? `User: ${currentUser.email}` : 'No user');
+  }, [currentUser]);
   
   return (
     <>

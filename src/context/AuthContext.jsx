@@ -30,8 +30,16 @@ export function AuthProvider({ children }) {
   }
   
   async function logout() {
-    await signOut(auth);
-    setCurrentUser(null);
+    try {
+      await signOut(auth);
+      setCurrentUser(null);
+      console.log('User logged out successfully');
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Even if Firebase logout fails, clear the local state
+      setCurrentUser(null);
+      throw error;
+    }
   }
   
   async function updatePassword(currentPassword, newPassword) {
@@ -100,14 +108,65 @@ export function AuthProvider({ children }) {
 
     // Handle page visibility changes to refresh auth state
     const handleVisibilityChange = () => {
-      if (!document.hidden && auth.currentUser) {
-        // Page became visible, refresh the user data
-        auth.currentUser.reload().then(() => {
-          const freshUser = {...auth.currentUser};
-          setCurrentUser(freshUser);
-        }).catch((error) => {
-          console.error('Error refreshing user on visibility change:', error);
-          // If refresh fails, the user might have been logged out
+      if (!document.hidden) {
+        // Page became visible, check and refresh auth state
+        console.log('Page became visible, checking auth state...');
+        
+        // Force a check of the current auth state
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+          // User is still logged in, refresh their data
+          currentUser.reload().then(() => {
+            const freshUser = {...currentUser};
+            setCurrentUser(freshUser);
+            console.log('User refreshed on visibility change:', freshUser.email);
+          }).catch((error) => {
+            console.error('Error refreshing user on visibility change:', error);
+            // If refresh fails, the user might have been logged out
+            if (error.code === 'auth/user-token-expired' || 
+                error.code === 'auth/user-not-found' || 
+                error.code === 'auth/network-request-failed') {
+              setCurrentUser(null);
+              console.log('User logged out due to token expiration or network error');
+            }
+          });
+        } else {
+          // No current user, ensure state is cleared
+          setCurrentUser(null);
+          console.log('No user found on visibility change');
+        }
+      }
+    };
+
+    // Handle storage events (for multi-tab synchronization)
+    const handleStorageChange = (e) => {
+      if (e.key === 'firebase:authUser:' + auth.config.apiKey + ':[DEFAULT]') {
+        console.log('Auth storage changed, refreshing state...');
+        // Force a re-check of auth state
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+          setCurrentUser({...currentUser});
+        } else {
+          setCurrentUser(null);
+        }
+      }
+    };
+
+    // Handle beforeunload to ensure clean state
+    const handleBeforeUnload = () => {
+      console.log('Page unloading, preserving auth state...');
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    // Also listen for focus events as a backup
+    const handleWindowFocus = () => {
+      if (auth.currentUser) {
+        console.log('Window focused, checking auth state...');
+        auth.currentUser.reload().catch((error) => {
+          console.error('Error refreshing user on window focus:', error);
           if (error.code === 'auth/user-token-expired' || error.code === 'auth/user-not-found') {
             setCurrentUser(null);
           }
@@ -115,11 +174,14 @@ export function AuthProvider({ children }) {
       }
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleWindowFocus);
 
     return () => {
       unsubscribe();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('focus', handleWindowFocus);
     };
   }, []);
   
@@ -131,7 +193,22 @@ export function AuthProvider({ children }) {
     logout,
     updatePassword,
     updateUserProfile,
-    refreshUser
+    refreshUser,
+    forceRefreshAuth: () => {
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        currentUser.reload().then(() => {
+          setCurrentUser({...currentUser});
+        }).catch((error) => {
+          console.error('Force refresh auth error:', error);
+          if (error.code === 'auth/user-token-expired' || error.code === 'auth/user-not-found') {
+            setCurrentUser(null);
+          }
+        });
+      } else {
+        setCurrentUser(null);
+      }
+    }
   };
 
   return (
